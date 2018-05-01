@@ -1,2 +1,1 @@
-# ForgetMeNot
-TAMU ECEN 403/404 Senior Design Project
+Codes for the Raspberry Pi to use with the the Accelerometer and the Temp Sensor

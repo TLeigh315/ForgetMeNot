@@ -1,5 +1,6 @@
 import smbus
 import time
+from subprocess import call
 
 # Get I2C bus
 bus = smbus.SMBus(1)
@@ -35,7 +36,46 @@ MCP9808_REG_RSLTN_25			= 0x01 # +0.25C
 MCP9808_REG_RSLTN_125			= 0x02 # +0.125C
 MCP9808_REG_RSLTN_0625			= 0x03 # +0.0625C
 
-class time_alert():
+def EMS_caller(repeat, delay, car_color, car_make, car_model, Longitude, Long_Dir, Lattitude, Latt_Dir):
+    
+    cmd_beg= 'espeak -ven+f3 -g1 -s150'
+    cmd_end= ' 2>/dev/null' # To play back the stored .wav file and to dump the std errors to /dev/null
+    cmd_out= '--stdout > /home/pi/Desktop/Text.wav ' # To store the voice file
+
+    #text = input("Enter the Text: ")
+    intro = "This is the Forget Me Not Child Safety System  A child has been left unattended in a vehicle and needs assistance."
+    car_description = "The child is in a " + " ' " + str(car_color) + " ' " + str(car_make) + " ' " + str(car_model) + " ' "
+    GPS_Longitude = "at GPS Location " + " ' " + str(Longitude) + " ' " + " degrees " + " ' " + str(Long_Dir) + " ' "
+    GPS_Lattitude = " and" + " ' " + str(Lattitude) + " ' " + " degrees " +  " ' " + str(Latt_Dir) + " ' " 
+    
+    print(intro + car_description + GPS_Longitude + GPS_Lattitude)
+
+    #Replacing ' ' with '_' to identify words in the text entered
+    intro = intro.replace(' ', '_')
+    car_description = car_description.replace(' ', '_')
+    GPS_Longitude = GPS_Longitude.replace(' ', '_')
+    GPS_Lattitude = GPS_Lattitude.replace(' ', '_')
+    
+    time.sleep(delay)
+    for num in range(0,repeat) :
+        num=num+1
+        #Calls the Espeak TTS Engine to read aloud a Text
+        call([cmd_beg+cmd_out+intro+cmd_end], shell=True)
+        call([cmd_beg+cmd_out+car_description+cmd_end], shell=True)
+        call([cmd_beg+cmd_out+GPS_Longitude+cmd_end], shell=True)
+        call([cmd_beg+cmd_out+GPS_Lattitude+cmd_end], shell=True)
+        time.sleep(1)
+    
+class alert():
+    
+    def danger_temp_alert(self, serial):
+        print("Car has exceeded max temperature!")
+        serial.write(b'1') #green light will turn on and off once
+        
+    def temp_rate_alert(self, serial):
+        print("Car temperature is increasing dangerously fast!")
+        serial.write(b'2') #yellow light will turn on and off once
+        
     def warning_alert(self, serial):
         print("Child has been left in car alone!")
         serial.write(b'3') #red light will turn on and off once
@@ -51,20 +91,9 @@ class time_alert():
     def parent_EMS_not(self,serial):
         print("EMS has been contacted")
         serial.write(b'6') #red and green lights will turn on and off once
-
-class temp_sensor():
-       
-    class temp_alert():
-        def danger_temp_alert(self, timer,serial):
-            last_alert = timer
-            serial.write(b'1') #green light will turn on and off once
-            return last_alert
-        
-        def temp_rate_alert(self, timer, serial):
-            last_alert = timer
-            serial.write(b'2') #yellow light will turn on and off once
-            return last_alert
     
+class temp_sensor():
+
     def readTempF(self):
         data = bus.read_i2c_block_data(MCP9808_DEFAULT_ADDRESS, MCP9808_REG_AMBIENT_TEMP, 2)
 		
@@ -95,35 +124,39 @@ class temp_sensor():
         return {"temp_rate" : temp_rate, "base_temp" : base_temp, "base_time" : base_time, "start" :start}
 
     def Temperature(self, base_temp, base_time, timer, start, danger_rate, last_alert, serial, max):
+        temp_rate_bit = 0
+        danger_temp_bit = 0
         temp = temp_sensor.readTempF(self) #Read temperature in F
-        alert = temp_sensor.temp_alert() #Create alerts object 
         print ("Current Temperature in Fahrenheit : %.2f F"%(temp)) #Display temperature
         print ("Max temperature : " + str(max))
         if str(temp) > str(max): #check if current temp is higher than defined max temp
-            print("Dangerously hot temperatures! \n\n")
+            print("Dangerously hot temperatures!")
             if last_alert == 0 :
-                last_alert=alert.danger_temp_alert(timer,serial) #trigger SMS warning
+                last_alert=timer
+                danger_temp_bit = 1 #trigger danger_temp_alert() SMS warning
                 
             if (timer-last_alert) > 60 : #If it's been more than a minute since the last alert send another
-                last_alert=alert.danger_temp_alert(timer,serial) #trigger SMS warning
+                last_alert=timer
+                danger_temp_bit = 1 #trigger danger_temp_alert() SMS warning
 
         rate = temp_sensor.calc_rate(self, temp, base_temp, base_time, timer, start) #Calculate change in temperature
-        #Consider getting rid of last_temp value. Not using it right now.
         start = rate['start']
         base_time = rate['base_time']
         base_temp = rate['base_temp']
     
         if rate['temp_rate'] > danger_rate : #Check if temperature is rising too quickly
-            print("Dangerous increase in temperature! \n\n")
+            print("Dangerous increase in temperature!")
         
             if last_alert == 0 :
-                last_alert=alert.temp_rate_alert(timer, serial) #trigger SMS warning
+                last_alert=timer
+                temp_rate_bit = 1 #trigger temp_rate_alert() SMS warning
         
             if (timer-last_alert) > 60 : #If it's been more than a minute since the last alert send another
-                last_alert=alert.temp_rate_alert(timer,serial) #trigger SMS warning
+                last_alert=timer
+                temp_rate_bit = 1 #trigger temp_rate_alert() SMS warning
         
-        return {"base_temp" : base_temp, "base_time" : base_time, "start" : start, "last_alert" : last_alert}
+        return {"base_temp" : base_temp, "base_time" : base_time, "start" : start, "last_alert" : last_alert, "temp_rate_bit" : temp_rate_bit, "danger_temp_bit" : danger_temp_bit}
         #last_temp=temp # Update last_temp value before getting new measurement
     
-    
+
     
