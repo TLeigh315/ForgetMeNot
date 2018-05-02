@@ -39,7 +39,6 @@ MCP9808_REG_RSLTN_125			= 0x02 # +0.125C
 MCP9808_REG_RSLTN_0625			= 0x03 # +0.0625C
 
 def EMS_caller(repeat, delay, car_color, car_make, car_model, Longitude, Long_Dir, Lattitude, Latt_Dir):
-    
     cmd_beg= 'espeak -ven+f3 -g1 -s150'
     cmd_end= ' 2>/dev/null' # To play back the stored .wav file and to dump the std errors to /dev/null
     cmd_out= '--stdout > /home/pi/Desktop/Text.wav ' # To store the voice file

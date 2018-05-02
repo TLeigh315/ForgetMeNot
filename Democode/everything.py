@@ -24,8 +24,9 @@ differencez = 0 # difference between current and last known Z Coordinates
 update_time = 1 #check reed sensor every second
 start_program = 0
 reed_pin = 36
-timer = 0 #initiate timer
-timer_speed = 1
+timer = #initiate timer
+#timer_speed = 1
+timer_speed = input("How fast do you want the timer (in seconds)?")
 last_alert = 0
 reed_bit = 0 # seat belt check. 1 = unbuckled, 0 = buckled
 last_alert = 0
@@ -43,7 +44,7 @@ BLEstart = 0 #will be zero only for timer = 1
 BLEonbutton = 40 #onbutton represents parent leaving BLE range
 BLEoffbutton= 38 #offbutton represents parent returning to BLE Range
 #BLEtimer_speed = 1 #TEMPORARY timer iterates once/second USING timer_speed instead
-max = 89 #maximum temperature
+max = 82 #maximum temperature
 BLEfirst_alert= 0 #time of first alert
 over = 0 # will allow program to end when EMS is called
 #########################################################################################
@@ -86,12 +87,19 @@ print("Maximum car temperature is: " + str(max))
 
 def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart) :
     i = 0
+    left_alone_at = BLEtimer - BLEbase_time
     while True :
         #calculate temperature alert parameters
         temperature = tempsensor.Temperature(base_temp, BLEbase_time, BLEtimer, BLEstart, danger_rate, BLElast_alert, BLEfirst_alert, ser, max)
-      
+        alone_time = BLEtimer - left_alone_at
+        EMS_time = alone_time - BLEfirst_alert
+
+        #print("i value is : " + str(i)) #TEMPORARY
+        print("Child has been alone for : " + str(alone_time) + " seconds") #TEMPORARY
+        #print("EMS_time : " + str(EMS_time) + " seconds")
+        
         if (temperature['danger_temp_bit'] | temperature['temp_rate_bit']) == 1 : #keep track of when first alert was made
-            i = i + 1
+            i = i + 1 #determine if a temperature alert has been sent
 
             if i == 1 : #only save first alert once
                 BLEfirst_alert = temperature['last_alert']
@@ -103,20 +111,20 @@ def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time,
                 alert.temp_rate_alert(ser)
  
                 
-        if (BLEtimer-BLEfirst_alert) == 4*60 : #if it's been 4 min since first temp alert call EMS
-            alert.parent_EMS_not(ser)
+        if ((EMS_time == 4*60) & (i>0)) : #if child's been alone 4 min since first temp alert call EMS
+            #alert.parent_EMS_not(ser)
             alert.EMS_call(ser)
-            TempHeader1.EMS_caller(repeat, talk_delay, car_color, car_make, car_model, Longitude, Long_Dir, Lattitude, Latt_Dir)
+            TempHeader1.EMS_caller(repeat, talk_delay, car_color, car_make, car_model, Longitude, Lattitude)
             over = 1
             
-        if (BLEtimer == 60*5) : #if child has been left in car for 5 min send warning text
+        if (alone_time == 60*5) : #if child has been left in car for 5 min send warning text
             alert.warning_alert(ser)
         
-        if ((BLEtimer == 60*9) | (BLEtimer-BLEfirst_alert) == 3*60) : #if child has been left in safe temp car for 9 min or parent hasn't returned 3 min after first temp alert, tell parents that EMS is about to be contacted
+        if ((alone_time == 60*9) | ((EMS_time == 3*60) & (i>0))) : #if child has been left in safe temp car for 9 min or parent hasn't returned 3 min after first temp alert, tell parents that EMS is about to be contacted
             alert.EMS_warning_alert(ser)
         
-        if (BLEtimer == 60*10) : #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
-            alert.parent_EMS_not(ser)
+        if (alone_time > 60*10) : #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
+            #alert.parent_EMS_not(ser)
             alert.EMS_call(ser)
             TempHeader1.EMS_caller(repeat, talk_delay, car_color, car_make, car_model, Longitude, Long_Dir, Lattitude, Latt_Dir)
             over = 1
