@@ -122,7 +122,7 @@ class temp_sensor():
             #print("New last_temp value: " + str(last_temp))
                
         temp_rate = temp - base_temp # calculate how fast temperature has changed in last minute
-        print("Base temperature was " + str(base_temp) + " at the " + str(base_time) + " second mark.")
+        #print("Base temperature was " + str(base_temp) + " at the " + str(base_time) + " second mark.")
         print("Temperature change within the last minute : " + str(temp_rate))
         
         if (timer-base_time) > 59 : #Check if minute has passed
@@ -141,7 +141,7 @@ class temp_sensor():
         danger_temp_bit = 0
         temp = temp_sensor.readTempF(self) #Read temperature in F
 
-        print ("Max temperature : " + str(max))
+        #print ("Max temperature : " + str(max))
         print ("Current Temperature in Fahrenheit : %.2f F"%(temp)) #Display temperature
         
         if str(temp) > str(max): #check if current temp is higher than defined max temp
@@ -195,14 +195,15 @@ class accelerometer_sensor() :
         x = Accelerometer.getX()
         y = Accelerometer.getY()
         z = Accelerometer.getZ()
-
+        
         if start_program == 0 : #prevents false acceleration alerts
+            i = 0
             start_program = 1
             lastx = x
             lasty = y
             lastz = z
             #print("\rnewlastX: %.6f\tnewlastY: %.6f\tnewlastZ: %.6f \t m/s^2" % (x, y, z))
-        
+    
         #  Display results (acceleration is measured in m/s^2)
         print("\rX: %.6f\tY: %.6f\tZ: %.6f \td m/s^2" % (x, y, z))
         #print("\rlastX: %.6f\tlastY: %.6f\tlastZ: %.6f \t m/s^2" % (lastx, lasty, lastz))
@@ -222,7 +223,8 @@ class accelerometer_sensor() :
                     last_alert = timer #Update last_alert time
                     reed_bit = 1 #trigger danger_temp_alert() SMS warning
             
-                start_program = 0 #reset program values
+                #start_program = 0 #reset program values
+                
 
         #Update coordinate values
         lastx = x

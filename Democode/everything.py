@@ -24,7 +24,7 @@ differencez = 0 # difference between current and last known Z Coordinates
 update_time = 1 #check reed sensor every second
 start_program = 0
 reed_pin = 36
-timer = #initiate timer
+timer = 0 #initiate timer
 #timer_speed = 1
 timer_speed = input("How fast do you want the timer (in seconds)?")
 last_alert = 0
@@ -36,7 +36,7 @@ last_alert = 0
 BLEstart_time = 0 #TEMPORARY
 BLEtimer = BLEstart_time #inital timer value. Timer will be in seconds
 BLElast_alert = 0 #time since last alert
-danger_rate = 1
+danger_rate = 1.9
 base_temp = 0
 BLEbase_time = 0
 temp_rate = 0 #difference between current and last temperature
@@ -44,7 +44,7 @@ BLEstart = 0 #will be zero only for timer = 1
 BLEonbutton = 40 #onbutton represents parent leaving BLE range
 BLEoffbutton= 38 #offbutton represents parent returning to BLE Range
 #BLEtimer_speed = 1 #TEMPORARY timer iterates once/second USING timer_speed instead
-max = 82 #maximum temperature
+max = 89 #maximum temperature
 BLEfirst_alert= 0 #time of first alert
 over = 0 # will allow program to end when EMS is called
 #########################################################################################
