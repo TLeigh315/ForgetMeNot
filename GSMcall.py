@@ -26,8 +26,8 @@ rcv=port.read(10)
 message=rcv.decode('utf-8')
 print (rcv)
 time.sleep(1)
-
 print("b")
+
 message='ATE0'+'\r\n'
 byte_message=message.encode('utf-8')
 port.write(byte_message)
@@ -100,7 +100,7 @@ time.sleep(1)
 print("i")
 # Sending a message to a particular Number
 
-message='AT+CMGS="8327978415"'+'\r\n'
+message='ATD8327978415'+'\r\n'
 byte_message=message.encode('utf-8')
 #port.write('AT+CMGS="9495353464"'+'\r\n')
 port.write(byte_message)
