@@ -1,3 +1,9 @@
+In order to get consistent texts without text messages:
+	Terminated each message variable with \r NOT \r\n
+	Disabled serial login (Probably ended the distortion issue also)
+		sudo systemctl stop serial-getty@ttyAMA0.service //disables login for current session
+		sudo systemctl disable serial-getty@ttyAMA0.service //disables serial at boot (double check. code has mixed reviews)
+
 import serial
 import RPi.GPIO as GPIO      
 import os, time
@@ -15,11 +21,10 @@ time.sleep(1)
 port.flushOutput()
 time.sleep(1)
 
+print("a")
 # Transmitting AT Commands to the Modem
 # '\r\n' indicates the Enter key
-
-print("a")
-message='AT'+'\r'
+message='AT'+'\r\n'
 byte_message=message.encode('utf-8')
 print(byte_message)
 port.write(byte_message)
@@ -27,102 +32,106 @@ rcv=port.read(10)
 message=rcv.decode('utf-8')
 print (rcv)
 time.sleep(1)
-
 print("b")
-message='ATE0'+'\r'
+
+message='ATE0'+'\r\n'
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
+#port.write('ATE0'+'\r\n')      # Disable the Echo
 rcv = port.read(10)
 print (rcv)
 time.sleep(1)
-
 print("c")
-message='ATE0'+'\r'
+
+message='ATE0'+'\r\n'
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
+#port.write('ATE0'+'\r\n')      # Disable the Echo
 rcv = port.read(10)
 print (rcv)
 time.sleep(1)
-
 print("d")
-message='AT+CVHU=0'+'\r'
+
+message='AT+CVHU=0'+'\r\n'
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
+#port.write('ATE0'+'\r\n')      # Disable the Echo
 rcv = port.read(10)
 print (rcv)
 time.sleep(1)
-
 print("e")
-message='ATI'+'\r'
+
+message='ATI'+'\r\n'
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
-rcv = port.read(25)
+#port.write('ATE0'+'\r\n')      # Disable the Echo
+rcv = port.read(15)
 print (rcv)
 time.sleep(1)
-
 print("f")
-message='AT+GMM'+'\r'
+
+message='AT+GMM'+'\r\n'
 byte_message=message.encode('utf-8')
+#port.write('AT+CMGF=1'+'\r\n')  # Select Message format as Text mode 
 port.write(byte_message)
 print(byte_message)
-rcv = port.read(20)
+rcv = port.read(15)
 print (rcv)
 time.sleep(1)
-
 print("g")
-message='AT+CPMS="SM","SM",SM"'+'\r'
+
+message='AT+CPMS="SM","SM",SM"'
+#message='AT+CNMI=2,1,0,0,0'+'\r\n'
 byte_message=message.encode('utf-8')
+print(byte_message)
+#port.write('AT+CNMI=2,1,0,0,0'+'\r\n')   # New SMS Message Indications
 port.write(byte_message)
 rcv = port.read(20)
 print (rcv)
 time.sleep(1)
-
 print("h")
-message='AT+COPS?'+'\r'
-byte_message=message.encode('utf-8')
-port.write(byte_message)
-print(byte_message)
-rcv = port.read(50)
-print (rcv)
-time.sleep(1)
 
-print("h")
-message='ATZ'+'\r'
+message='AT+CMGF=1'+'\r\n'
 byte_message=message.encode('utf-8')
+#port.write('AT+CMGF=1'+'\r\n')  # Select Message format as Text mode 
 port.write(byte_message)
 print(byte_message)
 rcv = port.read(10)
 print (rcv)
 time.sleep(1)
-
-print("h")
-message='AT+CUSD=1'+'\r' #Allows control of the Unstructered Supplementary Service Data
-byte_message=message.encode('utf-8')
-port.write(byte_message)
-print(byte_message)
-rcv = port.read(10)
-print (rcv)
-time.sleep(1)
-
 print("i")
-message='ATD+18327978415;'+'\r'
+# Sending a message to a particular Number
+
+message='ATD8327978415'+'\r\n'
 byte_message=message.encode('utf-8')
+#port.write('AT+CMGS="9495353464"'+'\r\n')
 port.write(byte_message)
 print(byte_message)
-rcv = port.read(20)
+rcv = port.read(10)
 print (rcv)
 time.sleep(1)
+print("j")
 
-while(1):
-    print(port.readline())
+message='Hello User'+'\r\n'
+byte_message=message.encode('utf-8')
+#port.write('Hello User'+'\r\n')  # Message
+port.write(byte_message)
+print(byte_message)
+rcv = port.read(10)
+print (rcv)
+print("k")
 
-time.sleep(1)
-
-    
+message="\x1A"
+byte_message=message.encode('utf-8')
+#port.write("\x1A") # Enable to send SMS
+port.write(byte_message)
+print(byte_message)
 print("end")
-
+for i in range(10):
+    rcv = port.read(10)
+    print (rcv)
 

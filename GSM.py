@@ -15,113 +15,111 @@ time.sleep(1)
 port.flushOutput()
 time.sleep(1)
 
-print("a")
 # Transmitting AT Commands to the Modem
 # '\r\n' indicates the Enter key
-message='AT'+'\r\n'
+
+print("a")
+message='AT'+'\r'
 byte_message=message.encode('utf-8')
 print(byte_message)
 port.write(byte_message)
-rcv=port.read(10)
+rcv=port.read(20)
 message=rcv.decode('utf-8')
 print (rcv)
 time.sleep(1)
 
 print("b")
-message='ATE0'+'\r\n'
+message='ATE0'+'\r' # Disable the Echo
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
-#port.write('ATE0'+'\r\n')      # Disable the Echo
-rcv = port.read(10)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
+
 print("c")
-
-message='ATE0'+'\r\n'
+message='ATE0'+'\r' # Disable the Echo
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
-#port.write('ATE0'+'\r\n')      # Disable the Echo
-rcv = port.read(10)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
+
 print("d")
-
-message='AT+CVHU=0'+'\r\n'
+message='AT+CVHU=0'+'\r'
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
-#port.write('ATE0'+'\r\n')      # Disable the Echo
-rcv = port.read(10)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
+
 print("e")
-
-message='ATI'+'\r\n'
+message='ATI'+'\r'
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
-#port.write('ATE0'+'\r\n')      # Disable the Echo
-rcv = port.read(15)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
-print("f")
 
-message='AT+GMM'+'\r\n'
+print("f")
+message='AT+GMM'+'\r'
 byte_message=message.encode('utf-8')
-#port.write('AT+CMGF=1'+'\r\n')  # Select Message format as Text mode 
 port.write(byte_message)
 print(byte_message)
-rcv = port.read(15)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
 print("g")
 
 message='AT+CPMS="SM","SM",SM"'
-#message='AT+CNMI=2,1,0,0,0'+'\r\n'
 byte_message=message.encode('utf-8')
 print(byte_message)
-#port.write('AT+CNMI=2,1,0,0,0'+'\r\n')   # New SMS Message Indications
 port.write(byte_message)
 rcv = port.read(20)
 print (rcv)
 time.sleep(1)
 print("h")
 
-message='AT+CMGF=1'+'\r\n'
+message='AT+CMGF=1'+'\r' # Select Message format as Text mode 
 byte_message=message.encode('utf-8')
-#port.write('AT+CMGF=1'+'\r\n')  # Select Message format as Text mode 
 port.write(byte_message)
 print(byte_message)
-rcv = port.read(10)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
+
 print("i")
-# Sending a message to a particular Number
-
-message='AT+CMGS="8327978415"'+'\r\n'
+message='AT+CNMI=2,1,0,0,0'+'\r'  # New SMS Message Indications
 byte_message=message.encode('utf-8')
-#port.write('AT+CMGS="9495353464"'+'\r\n')
-port.write(byte_message)
 print(byte_message)
-rcv = port.read(10)
+port.write(byte_message)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
-print("j")
 
-message='Hello User'+'\r\n'
+print("j")
+message='AT+CMGS="18327978415"'+'\r'# Sending a message to a particular Number
 byte_message=message.encode('utf-8')
-#port.write('Hello User'+'\r\n')  # Message
 port.write(byte_message)
 print(byte_message)
-rcv = port.read(10)
+rcv = port.read(20)
 print (rcv)
-print("k")
+time.sleep(1)
 
-message="\x1A"
+print("k")
+message='Your child has been left in the car alone. Please return to your car immediately.'+'\r'
 byte_message=message.encode('utf-8')
-#port.write("\x1A") # Enable to send SMS
+port.write(byte_message)
+print(byte_message)
+rcv = port.read(20)
+print (rcv)
+
+print("l")
+message="\x1A" # Enable to send SMS
+byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
 print("end")
