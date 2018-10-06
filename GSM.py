@@ -83,6 +83,14 @@ print (rcv)
 time.sleep(1)
 print("h")
 
+message='AT+CSCS="GSM"'+'\r' # Select Message format as Text mode 
+byte_message=message.encode('utf-8')
+port.write(byte_message)
+print(byte_message)
+rcv = port.read(20)
+print (rcv)
+time.sleep(1)
+
 message='AT+CMGF=1'+'\r' # Select Message format as Text mode 
 byte_message=message.encode('utf-8')
 port.write(byte_message)
@@ -101,7 +109,7 @@ print (rcv)
 time.sleep(1)
 
 print("j")
-message='AT+CMGS="18327978415"'+'\r'# Sending a message to a particular Number
+message='AT+CMGS="+18327978415"'+'\r'# Sending a message to a particular Number
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
@@ -126,3 +134,5 @@ print("end")
 for i in range(10):
     rcv = port.read(10)
     print (rcv)
+    
+port.close()

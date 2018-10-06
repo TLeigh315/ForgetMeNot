@@ -86,7 +86,7 @@ message='ATZ'+'\r'
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
-rcv = port.read(10)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
 
@@ -94,7 +94,7 @@ message='AT+CUSD=1'+'\r' #Allows control of the Unstructered Supplementary Servi
 byte_message=message.encode('utf-8')
 port.write(byte_message)
 print(byte_message)
-rcv = port.read(10)
+rcv = port.read(20)
 print (rcv)
 time.sleep(1)
 
@@ -106,10 +106,11 @@ rcv = port.read(20)
 print (rcv)
 time.sleep(1)
 
-while(1):
-    print(port.readline())
+#while(1):
+#    print(port.readline())
 
-time.sleep(1)
+time.sleep(20)
+port.close()
 
     
 print("end")
