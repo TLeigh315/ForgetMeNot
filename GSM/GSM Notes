@@ -1,0 +1,6 @@
+In order to get consistent texts without text messages:
+	Terminated each message variable with \r NOT \r\n
+	Disabled serial login (Probably ended the distortion issue also)
+		sudo systemctl stop serial-getty@ttyAMA0.service //disables login for current session TEMPORARY
+		sudo systemctl disable serial-getty@ttyAMA0.service //disables serial at boot TEMPORARY
+		sudo systemctl mask serial-getty@ttyAMA0.service //permanently disables serial/login at boot 
