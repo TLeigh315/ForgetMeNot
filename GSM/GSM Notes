@@ -4,3 +4,11 @@ In order to get consistent texts without text messages:
 		sudo systemctl stop serial-getty@ttyAMA0.service //disables login for current session TEMPORARY
 		sudo systemctl disable serial-getty@ttyAMA0.service //disables serial at boot TEMPORARY
 		sudo systemctl mask serial-getty@ttyAMA0.service //permanently disables serial/login at boot 
+
+In /boot/config.txt
+	In #NOOBS Auto-generated Settings:
+		enable_uart=1
+	Add the end of file
+		dtoverlay=pi3-miniuart-bt #Swap the serial ports
+	
+	Add dtoverlay=pi3-disable-bt #disable internal bluetooth
