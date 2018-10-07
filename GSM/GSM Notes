@@ -10,5 +10,4 @@ In /boot/config.txt
 		enable_uart=1
 	Add the end of file
 		dtoverlay=pi3-miniuart-bt #Swap the serial ports
-	
-	Add dtoverlay=pi3-disable-bt #disable internal bluetooth
+
