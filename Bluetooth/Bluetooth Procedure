@@ -13,3 +13,11 @@
    
 #Listen for phone
   sudo rfcomm listen /dev/rfcomm1 1
+  
+#IN A DIFFERENT TERMINAL (YOU SHOULD BE ABLE TO RECEIVE 
+  cat /dev/rfcomm1
+  
+#To save info from phone to a text file
+  cat /dev/rfcomm1 
+ 
+ 
