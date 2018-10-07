@@ -1,0 +1,15 @@
+#MAKE SURE RPI AND PHONE ARE PAIRED
+
+#Check if there are any rfcomm assignments
+  sudo rfcomm -a
+  
+#Bind phone to a rfcomm channel
+  sudo rfcomm bind /dev/rfcomm1 50:77:05:A7:B3:99
+
+#Check if there are any rfcomm assignments 
+  sudo rfcomm -a
+#
+   sdptool add --channel=1 SP
+   
+#Listen for phone
+  sudo rfcomm listen /dev/rfcomm1 1
