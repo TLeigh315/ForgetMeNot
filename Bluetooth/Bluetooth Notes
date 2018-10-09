@@ -1,5 +1,5 @@
 In /etc/systemd/system/dbus-org.bluez.service change the ExecStart lines to
-	ExecStart=/usr/lib/bluetooth/bluetoothd -C
+	ExecStart=/usr/lib/bluetooth/bluetoothd - C
 	ExecStartPost=/usr/bin/sdptool add SP
 
 In /etc/bluetooth/rfcomm.conf
