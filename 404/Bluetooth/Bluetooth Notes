@@ -1,0 +1,18 @@
+In /etc/systemd/system/dbus-org.bluez.service change the ExecStart lines to
+	ExecStart=/usr/lib/bluetooth/bluetoothd - C
+	ExecStartPost=/usr/bin/sdptool add SP
+
+In /etc/bluetooth/rfcomm.conf
+	rfcomm1{
+        	bind yes;
+        	device 50:77:05:A7:B3:99;
+        	channel 1;
+        	comment "my bluetooth connection";
+	}
+
+# Disable bluetooth
+dtoverlay=pi3-disable-bt
+
+# Swap the serial ports
+dtoverlay=pi3-miniuart-bt
+
