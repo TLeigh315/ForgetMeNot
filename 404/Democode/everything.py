@@ -49,6 +49,11 @@ BLEfirst_alert= 0 #time of first alert
 over = 0 # will allow program to end when EMS is called
 #########################################################################################
 
+############################################################################
+GSMpower = 11
+GSMreset = 12
+phonenum = "8327978415"
+#############################################################################
 
 ############################################################################
 repeat = 5 #how many times voice call will run
@@ -66,21 +71,25 @@ Latt_Dir = "East"
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(reed_pin, GPIO.IN, GPIO.PUD_DOWN)
 GPIO.setup(BLEonbutton,GPIO.IN, GPIO.PUD_DOWN) 
-GPIO.setup(BLEoffbutton,GPIO.IN, GPIO.PUD_DOWN) 
+GPIO.setup(BLEoffbutton,GPIO.IN, GPIO.PUD_DOWN)
+GPIO.setup(GSMpower,GPIO.OUT)
+GPIO.output(GSMpower,1) #Turn on GSM
+GPIO.setup(GSMreset,GPIO.OUT)
+GPIO.output(GSMreset,0) #Reset GSM
 #############################################################################
 
 ############################################################################
-dev = subprocess.check_output('ls /dev/ttyACM*', shell=True) #find out what name the Arduino is under
-print (dev) #display Arduino name (will be shown in bytes)
-dev=dev.decode("utf-8") #convert Arduino name from bytes to string
-dev=dev.replace("\n","") #get rid of \n
-
-try:
-    ser = serial.Serial(dev,9600) # Connect to Arduino's Serial
-    print ("Connected to Arduino")
-except:
-    print ("Arduino not connected")
+#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
+#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
+#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
+#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
+#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
+#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
+#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
+#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
 ############################################################################
+
+ser = 1
 
 print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
 print("Maximum car temperature is: " + str(max))
@@ -105,27 +114,27 @@ def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time,
                 BLEfirst_alert = temperature['last_alert']
             
             if temperature['danger_temp_bit'] == 1: 
-                alert.danger_temp_alert(ser)
+                alert.danger_temp_alert(phonenum)
 
             if temperature['temp_rate_bit'] == 1 :
-                alert.temp_rate_alert(ser)
+                alert.temp_rate_alert(phonenum)
  
                 
         if ((EMS_time == 4*60) & (i>0)) : #if child's been alone 4 min since first temp alert call EMS
             #alert.parent_EMS_not(ser)
-            alert.EMS_call(ser)
+            alert.EMS_call(phonenum)
             TempHeader1.EMS_caller(repeat, talk_delay, car_color, car_make, car_model, Longitude, Lattitude)
             over = 1
             
         if (alone_time == 60*5) : #if child has been left in car for 5 min send warning text
-            alert.warning_alert(ser)
+            alert.warning_alert(phonenum)
         
         if ((alone_time == 60*9) | ((EMS_time == 3*60) & (i>0))) : #if child has been left in safe temp car for 9 min or parent hasn't returned 3 min after first temp alert, tell parents that EMS is about to be contacted
-            alert.EMS_warning_alert(ser)
+            alert.EMS_warning_alert(phonenum)
         
         if (alone_time > 60*10) : #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
             #alert.parent_EMS_not(ser)
-            alert.EMS_call(ser)
+            alert.EMS_call(phonenum)
             TempHeader1.EMS_caller(repeat, talk_delay, car_color, car_make, car_model, Longitude, Long_Dir, Lattitude, Latt_Dir)
             over = 1
             break
@@ -164,7 +173,7 @@ while True:
     lastz = moving['lastz']
 
     if moving['reed_bit'] == 1 : #if car is moving, text parent
-        alert.seat_belt_alert(ser)
+        alert.seat_belt_alert(phonenum)
 
     #Moving into temp/BLEcheck
     print("Press BLEonbutton to symbolize parent's leaving child in car.")
@@ -172,7 +181,7 @@ while True:
     if (GPIO.input(BLEonbutton) == 1): #if ONLY the onbutton is pushed
         print("OnButton Pressed")
         
-        alert.warning_alert(ser) #send first warning text
+        alert.warning_alert(phonenum) #send first warning text
         #print("Time in seconds "+str(BLEtimer))
 
         #Update values

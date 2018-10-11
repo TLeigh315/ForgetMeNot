@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 import smbus
 import time
+import serial
 from subprocess import call
 from LIS3DH import LIS3DH
 
@@ -38,64 +39,111 @@ MCP9808_REG_RSLTN_25			= 0x01 # +0.25C
 MCP9808_REG_RSLTN_125			= 0x02 # +0.125C
 MCP9808_REG_RSLTN_0625			= 0x03 # +0.0625C
 
-def EMS_caller(repeat, delay, car_color, car_make, car_model, Longitude, Long_Dir, Lattitude, Latt_Dir):
-    cmd_beg= 'espeak -ven+f3 -g1 -s150'
-    cmd_end= ' 2>/dev/null' # To play back the stored .wav file and to dump the std errors to /dev/null
-    cmd_out= '--stdout > /home/pi/Desktop/Text.wav ' # To store the voice file
-
-    #text = input("Enter the Text: ")
-    intro = "This is the Forget Me Not Child Safety System  A child has been left unattended in a vehicle and needs assistance."
-    car_description = "The child is in a " + " ' " + str(car_color) + " ' " + str(car_make) + " ' " + str(car_model) + " ' "
-    GPS_Longitude = "at GPS Location " + " ' " + str(Longitude) + " ' " + " degrees " + " ' " + str(Long_Dir) + " ' "
-    GPS_Lattitude = " and" + " ' " + str(Lattitude) + " ' " + " degrees " +  " ' " + str(Latt_Dir) + " ' " 
-    
-    print(intro + car_description + GPS_Longitude + GPS_Lattitude)
-
-    #Replacing ' ' with '_' to identify words in the text entered
-    intro = intro.replace(' ', '_')
-    car_description = car_description.replace(' ', '_')
-    GPS_Longitude = GPS_Longitude.replace(' ', '_')
-    GPS_Lattitude = GPS_Lattitude.replace(' ', '_')
-    
-    time.sleep(delay)
-    for num in range(0,repeat) :
-        num=num+1
-        #Calls the Espeak TTS Engine to read aloud a Text
-        call([cmd_beg+cmd_out+intro+cmd_end], shell=True)
-        call([cmd_beg+cmd_out+car_description+cmd_end], shell=True)
-        call([cmd_beg+cmd_out+GPS_Longitude+cmd_end], shell=True)
-        call([cmd_beg+cmd_out+GPS_Lattitude+cmd_end], shell=True)
-        time.sleep(1)
-    
 class alert():
     
-    def danger_temp_alert(self, serial):
-        print("Car has exceeded max temperature!")
-        serial.write(b'1') #green light will turn on and off once
-        
-    def temp_rate_alert(self, serial):
-        print("Car temperature is increasing dangerously fast!")
-        serial.write(b'2') #yellow light will turn on and off once
-        
-    def warning_alert(self, serial):
-        print("Child has been left in car alone!")
-        serial.write(b'3') #red light will turn on and off once
-    
-    def EMS_warning_alert(self, serial):
-        print("Your child has been left alone in a car after several alerts. Please return to your car. EMS will be contacted in 60 seconds.")
-        serial.write(b'4') #yellow and green light will turn on and off once
-        
-    def EMS_call(self,serial):
-        print("Calling EMS")
-        serial.write(b'5') #red, yellow, and green light will turn on and off once
-    
-    def parent_EMS_not(self,serial):
-        print("EMS has been contacted")
-        serial.write(b'6') #red and green lights will turn on and off once
+    def GSMstartup(self):
+        # Enable Serial Communication
+        print("Begin SMS procedure")
+        port = serial.Serial("/dev/serial0", baudrate=9600, timeout=1) #Declare what serial port to use
 
-    def seat_belt_alert(self, serial):
-        print("Child is unbuckled in a moving car!")
-        serial.write(b'7') #yellow and red lights will turn on and off once
+        #Flush Serial
+        port.flushInput()
+        time.sleep(.5)
+        port.flushOutput()
+        time.sleep(.5)
+        
+    # Transmitting AT Commands to the Modem
+    def GSMconvo(self, message):
+        port = serial.Serial("/dev/serial0", baudrate=9600, timeout=1) #Declare what serial port to use
+        GSMreset = 12
+        GPIO.setup(GSMreset,GPIO.OUT)
+        GPIO.setup(GSMpower,GPIO.OUT)
+        GPIO.output(GSMpower,1) #Turn on GSM
+        
+        sendGSM = message + '\r' #Change original message into GSM message format
+        print(sendGSM.encode('utf-8')) #encode message and print to terminal
+        port.write(sendGSM.encode('utf-8')) #encode message and send to serial port
+        port.readline() #This WILL be '\r\n'. Need line to read GSM response on next line
+        rcv=port.readline()
+        print (rcv) #Read and print GSM response to terminal
+        
+        if rcv == "ERROR\r\n" & message !="AT+CMGF=1\r":
+            GPIO.output(GSMreset,0) #Reset GSM
+            timepassed = 0
+            
+            while True:
+                
+                
+                
+                time.sleep(1)
+                timepassed = timepassed + 1 #Keep track of how long Command has tried to send
+                
+                if timepassed > 15:
+                    print("Too much time has passed for GSM Command!") #Temporary
+                    time.sleep(5) #Temporary
+                
+            
+            
+            
+        time.sleep(.5)
+    
+    def GSMsms (self, textnumber, textmessage):
+        alert.GSMconvo(self,'AT')
+        alert.GSMconvo(self,'ATE0') # Disable the Echo
+        alert.GSMconvo(self,'ATE0') # Disable the Echo
+        alert.GSMconvo(self,'AT+CVHU=0')
+        alert.GSMconvo(self,'ATI')
+        alert.GSMconvo(self,'AT+GMM')
+        alert.GSMconvo(self,'AT+CPMS="SM","SM",SM"')
+        alert.GSMconvo(self,'AT+CSCS="GSM"')
+        alert.GSMconvo(self,'AT+CMGF=1') # Select Message format as Text mode 
+        alert.GSMconvo(self,'AT+CNMI=2,1,0,0,0') # New SMS Message Indications
+        alert.GSMconvo(self,'AT+CMGS="1'+ textnumber +'"') # Determine what number to text
+        alert.GSMconvo(self,textmessage) #Determine content of text
+        alert.GSMconvo(self,"\x1A") # Enable to send SMS
+
+    def danger_temp_alert(self, textnumber):
+        alert.GSMstartup(self)
+        message = "Car has exceeded max temperature!"
+        print(message)
+        alert.GSMsms(self,textnumber,message)
+            #if reset = 1 alert.GSMsms(self,textnumber,message)
+        
+    def temp_rate_alert(self, textnumber):
+        alert.GSMstartup(self)
+        message = "Car temperature is increasing dangerously fast!"
+        print(message)
+        alert.GSMsms(self,textnumber,message)
+        
+    def warning_alert(self, textnumber):
+        alert.GSMstartup(self)
+        message = "Child has been left in car alone!"
+        print(message)
+        alert.GSMsms(self,textnumber,message)
+    
+    def EMS_warning_alert(self, textnumber):
+        alert.GSMstartup(self)
+        message = "Your child has been left alone in a car after several alerts. Please return to your car. EMS will be contacted in 60 seconds."
+        print(message)
+        alert.GSMsms(self,textnumber,message)
+        
+    def EMS_call(self,textnumber):
+        alert.GSMstartup(self)
+        message = "Calling EMS"
+        print(message)
+        alert.GSMsms(self,textnumber,message)
+        
+    def parent_EMS_not(self,textnumber):
+        alert.GSMstartup(self)
+        message = "EMS has been contacted"
+        print(message)
+        alert.GSMsms(self,textnumber,message)
+
+    def seat_belt_alert(self, textnumber):
+        alert.GSMstartup(self)
+        message = "Child is unbuckled in a moving car!"
+        print(message)
+        alert.GSMsms(self,textnumber,message)
         
 class temp_sensor():
 

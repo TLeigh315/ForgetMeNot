@@ -6,6 +6,9 @@ textnumber = '8327978415'
 textmessage = 'Please return to your car immediately!'
 GPIO.setmode(GPIO.BOARD)    
 
+#GPIO.setup(8,GPIO.IN)
+#print(GPIO.input(8))
+
 # Enable Serial Communication
 print("Begin SMS procedure")
 port = serial.Serial("/dev/serial0", baudrate=9600, timeout=1) #Declare what serial port to use
