@@ -12,26 +12,26 @@ bus = smbus.SMBus(1)
 MCP9808_DEFAULT_ADDRESS			= 0x18
 
 # MCP9808 Register Pointer
-MCP9808_REG_CONFIG				= 0x01 # Configuration Register
+MCP9808_REG_CONFIG			= 0x01 # Configuration Register
 MCP9808_REG_UPPER_TEMP			= 0x02 # Alert Temperature Upper Boundary Trip register
 MCP9808_REG_LOWER_TEMP			= 0x03 # Alert Temperature Lower Boundary Trip register
 MCP9808_REG_CRIT_TEMP			= 0x04 # Critical Temperature Trip register
 MCP9808_REG_AMBIENT_TEMP		= 0x05 # Temperature register
 MCP9808_REG_MANUF_ID			= 0x06 # Manufacturer ID register
 MCP9808_REG_DEVICE_ID			= 0x07 # Device ID/Revision register
-MCP9808_REG_RSLTN				= 0x08 # Resolution register
+MCP9808_REG_RSLTN			= 0x08 # Resolution register
 
 # Configuration register values
 MCP9808_REG_CONFIG_DEFAULT		= 0x0000 # Continuous conversion (power-up default)
 MCP9808_REG_CONFIG_SHUTDOWN		= 0x0100 # Shutdown
-MCP9808_REG_CONFIG_CRITLOCKED	= 0x0080 # Locked, TCRIT register can not be written
-MCP9808_REG_CONFIG_WINLOCKED	= 0x0040 # Locked, TUPPER and TLOWER registers can not be written
+MCP9808_REG_CONFIG_CRITLOCKED	        = 0x0080 # Locked, TCRIT register can not be written
+MCP9808_REG_CONFIG_WINLOCKED	        = 0x0040 # Locked, TUPPER and TLOWER registers can not be written
 MCP9808_REG_CONFIG_INTCLR		= 0x0020 # Clear interrupt output
-MCP9808_REG_CONFIG_ALERTSTAT	= 0x0010 # Alert output is asserted
-MCP9808_REG_CONFIG_ALERTCTRL	= 0x0008 # Alert Output Control bit is enabled
+MCP9808_REG_CONFIG_ALERTSTAT	        = 0x0010 # Alert output is asserted
+MCP9808_REG_CONFIG_ALERTCTRL	        = 0x0008 # Alert Output Control bit is enabled
 MCP9808_REG_CONFIG_ALERTSEL		= 0x0004 # TA > TCRIT only
 MCP9808_REG_CONFIG_ALERTPOL		= 0x0002 # Alert Output Polarity bit active-high
-MCP9808_REG_CONFIG_ALERTMODE	= 0x0001 # Interrupt output
+MCP9808_REG_CONFIG_ALERTMODE	        = 0x0001 # Interrupt output
 
 # Resolution Register Value
 MCP9808_REG_RSLTN_5			= 0x00 # +0.5C
@@ -45,7 +45,6 @@ class alert():
         # Enable Serial Communication
         print("Begin SMS procedure")
         port = serial.Serial("/dev/serial0", baudrate=9600, timeout=1) #Declare what serial port to use
-
         #Flush Serial
         port.flushInput()
         time.sleep(.5)
@@ -55,94 +54,103 @@ class alert():
     # Transmitting AT Commands to the Modem
     def GSMconvo(self, message):
         port = serial.Serial("/dev/serial0", baudrate=9600, timeout=1) #Declare what serial port to use
-        GSMreset = 12
-        GPIO.setup(GSMreset,GPIO.OUT)
-        GPIO.setup(GSMpower,GPIO.OUT)
-        GPIO.output(GSMpower,1) #Turn on GSM
-        
         sendGSM = message + '\r' #Change original message into GSM message format
         print(sendGSM.encode('utf-8')) #encode message and print to terminal
         port.write(sendGSM.encode('utf-8')) #encode message and send to serial port
         port.readline() #This WILL be '\r\n'. Need line to read GSM response on next line
         rcv=port.readline()
         print (rcv) #Read and print GSM response to terminal
-        
-        if rcv == "ERROR\r\n" & message !="AT+CMGF=1\r":
-            GPIO.output(GSMreset,0) #Reset GSM
-            timepassed = 0
-            
-            while True:
-                
-                
-                
-                time.sleep(1)
-                timepassed = timepassed + 1 #Keep track of how long Command has tried to send
-                
-                if timepassed > 15:
-                    print("Too much time has passed for GSM Command!") #Temporary
-                    time.sleep(5) #Temporary
-                
-            
-            
-            
         time.sleep(.5)
-    
+        
+        if rcv == "ERROR\r\n":
+            print("GSM has thrown incorrect response. Send alert again.")
+            port.close()
+            raise ValueError("Returning to the original function")
+        
     def GSMsms (self, textnumber, textmessage):
-        alert.GSMconvo(self,'AT')
-        alert.GSMconvo(self,'ATE0') # Disable the Echo
-        alert.GSMconvo(self,'ATE0') # Disable the Echo
-        alert.GSMconvo(self,'AT+CVHU=0')
-        alert.GSMconvo(self,'ATI')
-        alert.GSMconvo(self,'AT+GMM')
-        alert.GSMconvo(self,'AT+CPMS="SM","SM",SM"')
-        alert.GSMconvo(self,'AT+CSCS="GSM"')
-        alert.GSMconvo(self,'AT+CMGF=1') # Select Message format as Text mode 
-        alert.GSMconvo(self,'AT+CNMI=2,1,0,0,0') # New SMS Message Indications
-        alert.GSMconvo(self,'AT+CMGS="1'+ textnumber +'"') # Determine what number to text
-        alert.GSMconvo(self,textmessage) #Determine content of text
-        alert.GSMconvo(self,"\x1A") # Enable to send SMS
+        try:
+            alert.GSMconvo(self,'AT')
+            alert.GSMconvo(self,'ATE0') # Disable the Echo
+            alert.GSMconvo(self,'ATE0') # Disable the Echo
+            alert.GSMconvo(self,'AT+CVHU=0')
+            alert.GSMconvo(self,'ATI')
+            alert.GSMconvo(self,'AT+GMM')
+            alert.GSMconvo(self,'AT+CPMS="SM","SM","SM"')
+            alert.GSMconvo(self,'AT+CSCS="GSM"')
+            alert.GSMconvo(self,'AT+CMGF=1') # Select Message format as Text mode 
+            alert.GSMconvo(self,'AT+CNMI=2,1,0,0,0') # New SMS Message Indications
+            alert.GSMconvo(self,'AT+CMGS="1'+ textnumber +'"') # Determine what number to text
+            alert.GSMconvo(self,textmessage) #Determine content of text
+            alert.GSMconvo(self,"\x1A") # Enable to send SMS
 
+            return 1 #Let us know if SMS text was successfull
+
+        except ValueError as err:
+            print("GSM has thrown an error!")
+            return 0 #Let us know if SMS text failed
+
+    def GSMerrorfunc(self, GSMerror):
+        GSMreset = 12
+        GPIO.setup(GSMreset,GPIO.OUT)
+        GPIO.output(GSMreset,1) #Reset GSM
+        GPIO.output(GSMreset,0) #Turn on GSM
+        GSMerror = GSMerror + 1 #Keep track of how many times GSM has thrown error
+
+        if GSMerror >= 3:
+            raise StopIteration("Too many GSM errors. Quit trying to use GSM")
+
+        print("GSM has thrown " + str(GSMerror) + " error(s)")
+        time.sleep(5) #Allow time for GSM to power back on
+        return GSMerror #Send updated GSM error count to other functions
+            
+    def warning_alert(self, textnumber):
+        GSMerror = 0 #initiate GSMerror variable. Keeps track of how many times GSM has thrown an error
+        alert.GSMstartup(self)
+        message = "Child has been left in car alone!"
+        print(message) #TEMPORARY
+
+        while True:
+            if alert.GSMsms(self,textnumber,message) == 1:
+                return GSMerror #Send updated GSM error count to Main function
+                break #If Message was sent successully, continue with Main Code
+            else:
+                GSMerror = alert.GSMerrorfunc(self, GSMerror) #Update the GSMerror count
+                alert.GSMsms(self,textnumber,message) #Resend text
+                
     def danger_temp_alert(self, textnumber):
         alert.GSMstartup(self)
         message = "Car has exceeded max temperature!"
-        print(message)
+        print(message) #TEMPORARY
         alert.GSMsms(self,textnumber,message)
-            #if reset = 1 alert.GSMsms(self,textnumber,message)
         
     def temp_rate_alert(self, textnumber):
         alert.GSMstartup(self)
         message = "Car temperature is increasing dangerously fast!"
-        print(message)
+        print(message) #TEMPORARY
         alert.GSMsms(self,textnumber,message)
         
-    def warning_alert(self, textnumber):
-        alert.GSMstartup(self)
-        message = "Child has been left in car alone!"
-        print(message)
-        alert.GSMsms(self,textnumber,message)
-    
     def EMS_warning_alert(self, textnumber):
         alert.GSMstartup(self)
         message = "Your child has been left alone in a car after several alerts. Please return to your car. EMS will be contacted in 60 seconds."
-        print(message)
+        print(message) #TEMPORARY
         alert.GSMsms(self,textnumber,message)
         
     def EMS_call(self,textnumber):
         alert.GSMstartup(self)
         message = "Calling EMS"
-        print(message)
+        print(message) #TEMPORARY
         alert.GSMsms(self,textnumber,message)
         
     def parent_EMS_not(self,textnumber):
         alert.GSMstartup(self)
         message = "EMS has been contacted"
-        print(message)
+        print(message) #TEMPORARY
         alert.GSMsms(self,textnumber,message)
 
     def seat_belt_alert(self, textnumber):
         alert.GSMstartup(self)
         message = "Child is unbuckled in a moving car!"
-        print(message)
+        print(message) #TEMPORARY
         alert.GSMsms(self,textnumber,message)
         
 class temp_sensor():
