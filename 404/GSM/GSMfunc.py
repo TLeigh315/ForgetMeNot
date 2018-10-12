@@ -6,8 +6,9 @@ textnumber = '8327978415'
 textmessage = 'Please return to your car immediately!'
 GPIO.setmode(GPIO.BOARD)    
 
-#GPIO.setup(8,GPIO.IN)
-#print(GPIO.input(8))
+GSMpower = 11
+GPIO.setup(GSMpower,GPIO.OUT)
+GPIO.output(GSMpower,1) #Turn on GSM
 
 # Enable Serial Communication
 print("Begin SMS procedure")
@@ -34,7 +35,7 @@ GSMconvo('ATE0') # Disable the Echo
 GSMconvo('AT+CVHU=0')
 GSMconvo('ATI')
 GSMconvo('AT+GMM')
-GSMconvo('AT+CPMS="SM","SM",SM"')
+GSMconvo('AT+CPMS="SM","SM","SM"')
 GSMconvo('AT+CSCS="GSM"')
 GSMconvo('AT+CMGF=1') # Select Message format as Text mode 
 GSMconvo('AT+CNMI=2,1,0,0,0') # New SMS Message Indications

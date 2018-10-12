@@ -1,16 +1,16 @@
-#!/usr/bin/python
 import RPi.GPIO as GPIO
-import serial
 import subprocess
-import LIS3DH #import LIS3DH
+import GSMheader
+import AccelSensorHeader
+import LIS3DH
 import TempHeader1
 import time
 
 #############################################################################
 accelerometer = LIS3DH.LIS3DH() #Create LIS3DH accelerometer
-accel_sensor = TempHeader1.accelerometer_sensor() #Create object for accelerometer_sensor class
+accel_sensor = AccelSensorHeader.accelerometer_sensor() #Create object for accelerometer_sensor class
 tempsensor = TempHeader1.temp_sensor()#Create MCP9808 temp sensor object
-alert = TempHeader1.alert() #Create object for alert class
+alert = GSMheader.alert() #Create object for alert class
 #############################################################################
 
 #############################################################################
@@ -88,7 +88,7 @@ GPIO.output(GSMpower,1) #Turn on GSM
 ############################################################################
 
 ser = 1
-
+alert.EMS_call(phonenum)
 print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
 print("Maximum car temperature is: " + str(max))
 
@@ -155,7 +155,6 @@ def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time,
 while True:
     
     try:
-        
         print("\r\nCurrent time is: " +str(timer))
         print("Last seat belt alert time: " + str(last_alert))
 
