@@ -6,14 +6,14 @@ import LIS3DH
 import TempHeader1
 import time
 
-#############################################################################
+#CREATE OBJECTS FROM HEADER CLASSES##########################################
 accelerometer = LIS3DH.LIS3DH() #Create LIS3DH accelerometer
 accel_sensor = AccelSensorHeader.accelerometer_sensor() #Create object for accelerometer_sensor class
 tempsensor = TempHeader1.temp_sensor()#Create MCP9808 temp sensor object
 alert = GSMheader.alert() #Create object for alert class
 #############################################################################
 
-#############################################################################
+# INITIAL ACCELEROMETER DATA###################################################
 movingcar = .1 # max aceleration in m/s^2
 lastx = 0 #last known X Coordinates
 lasty = 0 #last known Y Coordinates
@@ -22,13 +22,6 @@ differencex = 0 # difference between current and last known X Coordinates
 differencey = 0 # difference between current and last known Y Coordinates
 differencez = 0 # difference between current and last known Z Coordinates
 update_time = 1 #check reed sensor every second
-start_program = 0
-reed_pin = 36
-timer = 0 #initiate timer
-#timer_speed = 1
-timer_speed = input("How fast do you want the timer (in seconds)?")
-last_alert = 0
-reed_bit = 0 # seat belt check. 1 = unbuckled, 0 = buckled
 last_alert = 0
 ############################################################################
 
@@ -41,8 +34,6 @@ base_temp = 0
 BLEbase_time = 0
 temp_rate = 0 #difference between current and last temperature
 BLEstart = 0 #will be zero only for timer = 1
-BLEonbutton = 40 #onbutton represents parent leaving BLE range
-BLEoffbutton= 38 #offbutton represents parent returning to BLE Range
 #BLEtimer_speed = 1 #TEMPORARY timer iterates once/second USING timer_speed instead
 max = 89 #maximum temperature
 BLEfirst_alert= 0 #time of first alert
@@ -50,45 +41,41 @@ over = 0 # will allow program to end when EMS is called
 #########################################################################################
 
 ############################################################################
-GSMpower = 11
-GSMerror = 0 #initiate GSMerror variable. Keeps track of how many times GSM has thrown an error
-phonenum = "8327978415"
-#############################################################################
-
-############################################################################
 repeat = 5 #how many times voice call will run
 talk_delay = 10 #how long to wait before beginning to talk
 car_color = "black"
-car_make = "Nissan"
-car_model = "Versa"
+car_type = "Nissan Versa"
+car_license = AFD3243
 Longitude = 33.354
 Long_Dir = "North"
-Lattitude = 56.244
-Latt_Dir = "East"
+Latitude = 56.244
+Lat_Dir = "East"
+phonenum = "8327978415"
+backupnum = "8327978415"
+EMSnum = "8327978415"
 #############################################################################
 
-#############################################################################
+# SETUP GPIO PINS############################################################################
+reed_pin = 36
+GSMpower = 11
+BLEonbutton = 40 #onbutton represents parent leaving BLE range
+BLEoffbutton= 38 #offbutton represents parent returning to BLE Range
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(reed_pin, GPIO.IN, GPIO.PUD_DOWN)
 GPIO.setup(BLEonbutton,GPIO.IN, GPIO.PUD_DOWN) 
 GPIO.setup(BLEoffbutton,GPIO.IN, GPIO.PUD_DOWN)
 GPIO.setup(GSMpower,GPIO.OUT)
 GPIO.output(GSMpower,1) #Turn on GSM
-#############################################################################
+##############################################################################
 
-############################################################################
-#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
-#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
-#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
-#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
-#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
-#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
-#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
-#CONNECT TO PHONE CODE USED TO BE CONNECTION TO ARDUINO
-############################################################################
+# INITIAL TIMER DATA #########################################################
+start_program = 0
+timer = 0 #initiate timer
+#timer_speed = 1
+timer_speed = input("How fast do you want the timer (in seconds)?")
+##############################################################################
 
-ser = 1
-alert.EMS_call(phonenum)
+
 print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
 print("Maximum car temperature is: " + str(max))
 
@@ -128,7 +115,7 @@ def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time,
             alert.EMS_warning_alert(phonenum)
         
         if (alone_time > 60*10) : #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
-            alert.EMS_call(phonenum)
+            alert.EMS_call(EMSnum)
             TempHeader1.EMS_caller(repeat, talk_delay, car_color, car_make, car_model, Longitude, Long_Dir, Lattitude, Latt_Dir)
             over = 1
             break
@@ -158,7 +145,7 @@ while True:
         print("\r\nCurrent time is: " +str(timer))
         print("Last seat belt alert time: " + str(last_alert))
 
-        moving = accel_sensor.Accelerometer_sensor(ser, timer, GPIO.input(reed_pin), movingcar, last_alert, start_program, lastx, lasty ,lastz)
+        moving = accel_sensor.Accelerometer_sensor(timer, GPIO.input(reed_pin), movingcar, last_alert, start_program, lastx, lasty ,lastz)
 
         #Update values
         last_alert = moving['last_alert']
@@ -167,7 +154,7 @@ while True:
         lasty = moving['lasty']
         lastz = moving['lastz']
 
-        if moving['reed_bit'] == 1 : #if car is moving, text parent
+        if moving['reed_bit'] == 1 : #if child unbuckled in moving car, text parent
             alert.seat_belt_alert(phonenum)
 
         #Moving into temp/BLEcheck
