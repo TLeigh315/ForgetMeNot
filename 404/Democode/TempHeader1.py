@@ -1,7 +1,6 @@
 import RPi.GPIO as GPIO
 import smbus
 import time
-import serial
 from subprocess import call
 from LIS3DH import LIS3DH
 
@@ -73,7 +72,7 @@ class temp_sensor():
             
         return {"temp_rate" : temp_rate, "base_temp" : base_temp, "base_time" : base_time, "start" :start}
 
-    def Temperature(self, base_temp, base_time, timer, start, danger_rate, last_alert, first_alert, serial, max):
+    def Temperature(self, base_temp, base_time, timer, start, danger_rate, last_alert, first_alert, max):
 
         print("\r\nCurrent time is: " +str(timer))
         print("First temperature alert time: " +str(first_alert))

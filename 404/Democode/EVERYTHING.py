@@ -5,6 +5,7 @@ import AccelSensorHeader
 import LIS3DH
 import TempHeader1
 import time
+import bluetooth
 
 #CREATE OBJECTS FROM HEADER CLASSES##########################################
 accelerometer = LIS3DH.LIS3DH() #Create LIS3DH accelerometer
@@ -30,7 +31,6 @@ base_temp = 0
 BLEbase_time = 0
 temp_rate = 0 #difference between current and last temperature
 BLEstart = 0 #will be zero only for timer = 1
-#BLEtimer_speed = 1 #TEMPORARY timer iterates once/second USING timer_speed instead
 max = 89 #maximum temperature
 BLEfirst_alert= 0 #time of first alert
 over = 0 # will allow program to end when EMS is called
@@ -54,12 +54,10 @@ EMSnum = "8327978415"
 # SETUP GPIO PINS############################################################################
 reed_pin = 36
 GSMpower = 11
-BLEonbutton = 40 #onbutton represents parent leaving BLE range
-BLEoffbutton= 38 #offbutton represents parent returning to BLE Range
+programoffbutton= 38 #offbutton stops program
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(reed_pin, GPIO.IN, GPIO.PUD_DOWN)
-GPIO.setup(BLEonbutton,GPIO.IN, GPIO.PUD_DOWN) 
-GPIO.setup(BLEoffbutton,GPIO.IN, GPIO.PUD_DOWN)
+GPIO.setup(programoffbutton,GPIO.IN, GPIO.PUD_DOWN)
 GPIO.setup(GSMpower,GPIO.OUT)
 GPIO.output(GSMpower,1) #Turn on GSM
 ##############################################################################
@@ -71,24 +69,81 @@ timer = 0 #initiate timer
 timer_speed = input("How fast do you want the timer (in seconds)?")
 ##############################################################################
 
+def STOP():     
+    if GPIO.input(programoffbutton) == 1 : # If offbutton is pushed reset values and send program ending warning
+        print("\r\n\r\nProgram offbutton pressed. Hold button for 3 seconds to end program")
+        timer = 0
+        last_alert = 0
+        time.sleep(3)
+    
+        if GPIO.input(programoffbutton) == 1 : # If offbutton is pushed end program
+            client_sock.close()
+            server_sock.close()
+            print "Program finished."
+            print("\r\n\r\nGoodbye!\n\n")
+            break
 
-print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
-print("Maximum car temperature is: " + str(max))
+def assignValues():
+    data = client_sock.recv(1024)
+    testsite_array = []
+    
+    for line in data:
+        if line != "\n":
+            testsite_array.append(line)
 
+        else:
+            if testsite_array[0] == "P":
+                phonenum = testsite_array[1:]
+                print("Primary Phone: " + phonenum)
+            if testsite_array[0] == "B":
+                backupnum = testsite_array[1:]
+                print("Backup Phone: " + backupnum)
+            if testsite_array[0] == "C":
+                car_color = testsite_array[1:]
+                print("Car Color: " + car_color)
+            if testsite_array[0] == "T":
+                car_type = testsite_array[1:]
+                print("Car Type: " + car_type)
+            if testsite_array[0] == "L":
+                car_license = testsite_array[1:]
+                print("License Plate: " + car_license)
+            if testsite_array[0] == "O":
+                Longitude = testsite_array[1:]
+                print("GPS Longitude: " + Longitude)
+            if testsite_array[0] == "A":
+                Latitude = testsite_array[1:]
+                print("GPS Latitude: " + Latitude)
+            testsite_array = []
+
+    return {"phonenum": phonenum, "backupnum":backupnum, "car_color":car_color, "car_type":car_type, "car_license":car_license, "Longitude":Longitude, "Latitude":Latitude}
+
+def connected2App():
+    server_sock=bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+    port = 1
+    server_sock.bind(("",port))
+    server_sock.listen(1)
+    client_sock,address = server_sock.accept() #recieve phone's MAC
+
+    if (address == ('50:77:05:A7:B3:99', 1)): #if connected to phone
+        print("Accepted connection from " + address)
+        connected = True
+    else: connected = False
+    return connected
+
+     
 def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart) :
     i = 0
-    left_alone_at = BLEtimer - BLEbase_time
+    left_alone_at = BLEtimer - BLEbase_time #How many seconds after entire program began was the child left behind
     while True :
         #calculate temperature alert parameters
         temperature = tempsensor.Temperature(base_temp, BLEbase_time, BLEtimer, BLEstart, danger_rate, BLElast_alert, BLEfirst_alert, max)
-        alone_time = BLEtimer - left_alone_at
+        alone_time = BLEtimer - left_alone_at #BLEtimer == timer
         EMS_time = alone_time - BLEfirst_alert
 
         print("Child has been alone for : " + str(alone_time) + " seconds") #TEMPORARY
         
         if (temperature['danger_temp_bit'] | temperature['temp_rate_bit']) == 1 : #keep track of when first alert was made
             i = i + 1 #determine if a temperature alert has been sent
-
             if i == 1 : #only save first alert once
                 BLEfirst_alert = temperature['last_alert']
             
@@ -116,11 +171,10 @@ def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time,
             over = 1
             break
         
-        time.sleep(timer_speed) # wait for ___ seconds
+        time.sleep(timer_speed) # wait for 1 second
         
-
-        if GPIO.input(BLEoffbutton) == 1 : # If offbutton is pushed (parent returns within BLE range)
-            print("BLEoffbutton Pressed")
+        if connected2App() == True : # If parent returns within BLE range (offbutton is pushed)
+            print("App has reconnected")
             #Reset first and last temp alerts when parent returns (offbutton is pushed)
             BLElast_alert = 0  
             BLEfirst_alert = 0
@@ -132,59 +186,62 @@ def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time,
         BLEstart = temperature['start']
         BLElast_alert = temperature['last_alert']
         BLEtimer = BLEtimer + 1
+
+        STOP() #TEMPORARY
         
     return {"BLEtimer" : BLEtimer, "BLEfirst_alert" : BLEfirst_alert, "BLElast_alert" : BLElast_alert, "base_temp" : base_temp, "BLEbase_time" : BLEbase_time, "BLEstart" : BLEstart}
-    
-while True:
-    
-    try:
-        print("\r\nCurrent time is: " +str(timer))
-        print("Last seat belt alert time: " + str(last_alert))
 
-        moving = accel_sensor.Accelerometer_sensor(timer, GPIO.input(reed_pin), movingcar, last_alert, start_program, lastx, lasty ,lastz)
 
-        #Update values
-        last_alert = moving['last_alert']
-        start_program = moving['start_program']
-        lastx = moving['lastx']
-        lasty = moving['lasty']
-        lastz = moving['lastz']
+###############START OF PROGRAM############################################
+print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
+print("Maximum car temperature is: " + str(max))
 
-        if moving['reed_bit'] == 1 : #if child unbuckled in moving car, text parent
-            alert.seat_belt_alert(phonenum)
+if connected2App() == True: #If parent is present (App is connect) check if unbuckled in moving car
+    while True:
+            try:
+                assignValues() #Update Car information
+                print("\r\nCurrent time is: " +str(timer))
+                print("Last seat belt alert time: " + str(last_alert))
 
-        #Moving into temp/BLEcheck
-        print("Press BLEonbutton to symbolize parent's leaving child in car.")
+                moving = accel_sensor.Accelerometer_sensor(timer, GPIO.input(reed_pin), movingcar, last_alert, start_program, lastx, lasty ,lastz)
 
-        if (GPIO.input(BLEonbutton) == 1): #if ONLY the onbutton is pushed
-            print("OnButton Pressed")
-            alert.warning_alert(phonenum) #send first warning text
+                #Update values
+                last_alert = moving['last_alert']
+                start_program = moving['start_program']
+                lastx = moving['lastx']
+                lasty = moving['lasty']
+                lastz = moving['lastz']
+
+                if moving['reed_bit'] == 1 : #if child unbuckled in moving car, text parent
+                    alert.seat_belt_alert(phonenum)
+
+                time.sleep(timer_speed)
+                timer = timer + 1
+
+                STOP() #TEMPORARY
+
         
-            #Update values
-            checktemp = watchTemp(timer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart)
-            BLEfirst_alert = checktemp['BLEfirst_alert']
-            BLElast_alert = checktemp['BLElast_alert']
-            BLEbase_time = checktemp['BLEbase_time']
-            base_temp = checktemp['base_temp']
-            timer = checktemp['BLEtimer']
-            last_alert = 0 # Reset seat belt last #Reset first and last temp alerts when parent returns (offbutton is pushed)
-            BLElast_alert = 0  
-            BLEfirst_alert = 0
-        
-
-        time.sleep(timer_speed)
-        timer = timer + 1
-    
-        if GPIO.input(BLEoffbutton) == 1 : # If offbutton is pushed reset values and send program ending warning
-            print("\r\n\r\nProgram offbutton pressed. Hold button for 3 seconds to end program")
-            timer = 0
-            last_alert = 0
-            time.sleep(3)
-        
-            if GPIO.input(BLEoffbutton) == 1 : # If offbutton is pushed end program
-                print("\r\n\r\nGoodbye!\n\n")
-                break
+            except: #if phone disconnects 
+                print("App Disconnected")
+                address = 0 #reset address MIGHT BE UNNECESSARY
+                alert.warning_alert(phonenum) #send first warning text
             
+                #Update temperature and time values
+                checktemp = watchTemp(timer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart)
+                BLEfirst_alert = checktemp['BLEfirst_alert']
+                BLElast_alert = checktemp['BLElast_alert']
+                BLEbase_time = checktemp['BLEbase_time']
+                base_temp = checktemp['base_temp']
+                timer = checktemp['BLEtimer']
+                last_alert = 0 # Reset seat belt last #Reset first and last temp alerts when parent returns (offbutton is pushed)
+                BLElast_alert = 0  
+                BLEfirst_alert = 0
+            
+                time.sleep(timer_speed)
+                timer = timer + 1
+
+                STOP() #TEMPORARY
+
     except StopIteration as err:
-        print("GSM has thrown three errors. Check GSM. Exiting Main Procedure Code.")
-        break
+            print("GSM has thrown three errors. Check GSM. Exiting Main Procedure Code.")
+            break

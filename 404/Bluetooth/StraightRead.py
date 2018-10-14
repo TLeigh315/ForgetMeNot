@@ -18,42 +18,40 @@ while (True):
             try:
                 data = client_sock.recv(1024)
                 print(data)
-                file = open("testfile.txt","w")
-                file.write(data)
-                file.close()
-
                 testsite_array = []
-                with open('testfile.txt') as my_file:
-                    for line in my_file:
-                        if line[0] == "P":
-                            phonenum = line[1:]
+                for line in data:
+                    if line != "\n":
+                        testsite_array.append(line)
+
+                    else:
+                        if testsite_array[0] == "P":
+                            phonenum = testsite_array[1:]
                             print("Primary Phone: " + phonenum)
-                        if line[0] == "B":
-                            backupnum = line[1:]
+                        if testsite_array[0] == "B":
+                            backupnum = testsite_array[1:]
                             print("Backup Phone: " + backupnum)
-                        if line[0] == "C":
-                            car_color = line[1:]
+                        if testsite_array[0] == "C":
+                            car_color = testsite_array[1:]
                             print("Car Color: " + car_color)
-                        if line[0] == "T":
-                            car_type = line[1:]
+                        if testsite_array[0] == "T":
+                            car_type = testsite_array[1:]
                             print("Car Type: " + car_type)
-                        if line[0] == "L":
-                            car_license = line[1:]
+                        if testsite_array[0] == "L":
+                            car_license = testsite_array[1:]
                             print("License Plate: " + car_license)
-                        if line[0] == "O":
-                            Longitude = line[1:]
+                        if testsite_array[0] == "O":
+                            Longitude = testsite_array[1:]
                             print("GPS Longitude: " + Longitude)
-                        if line[0] == "A":
-                            Latitude = line[1:]
+                        if testsite_array[0] == "A":
+                            Latitude = testsite_array[1:]
                             print("GPS Latitude: " + Latitude)
-                    testsite_array.append(line)
+                        testsite_array = []
                 
             except:
                 print "App has disconnected"
                 address = 0 #reset address
                 stop = input("Try again? [Y=1 and N=2]")
                 break #break loop begin checking if phone has reconnected
-
         if stop == 2: break
         
 client_sock.close()
