@@ -17,34 +17,38 @@ while (True):
         while (True):
             try:
                 data = client_sock.recv(1024)
-                print(data)
                 testsite_array = []
                 for line in data:
                     if line != "\n":
                         testsite_array.append(line)
-
-                    else:
-                        if testsite_array[0] == "P":
-                            phonenum = testsite_array[1:]
+                        if testsite_array[0] == "P" and testsite_array[-1] == '\r':
+                            phonenum = ''.join(testsite_array[1:-1])
                             print("Primary Phone: " + phonenum)
-                        if testsite_array[0] == "B":
-                            backupnum = testsite_array[1:]
+                            
+                        if testsite_array[0] == "B" and testsite_array[-1] == '\r':
+                            backupnum = ''.join(testsite_array[1:-1])
                             print("Backup Phone: " + backupnum)
-                        if testsite_array[0] == "C":
-                            car_color = testsite_array[1:]
+                            
+                        if testsite_array[0] == "C" and testsite_array[-1] == '\r':
+                            car_color = ''.join(testsite_array[1:-1])
                             print("Car Color: " + car_color)
-                        if testsite_array[0] == "T":
-                            car_type = testsite_array[1:]
+                            
+                        if testsite_array[0] == "T" and testsite_array[-1] == '\r':
+                            car_type = ''.join(testsite_array[1:-1])
                             print("Car Type: " + car_type)
-                        if testsite_array[0] == "L":
-                            car_license = testsite_array[1:]
+                            
+                        if testsite_array[0] == "L" and testsite_array[-1] == '\r':
+                            car_license = ''.join(testsite_array[1:-1])
                             print("License Plate: " + car_license)
-                        if testsite_array[0] == "O":
-                            Longitude = testsite_array[1:]
+                            
+                        if testsite_array[0] == "O" and testsite_array[-1] == '\r':
+                            Longitude = ''.join(testsite_array[1:-1])
                             print("GPS Longitude: " + Longitude)
-                        if testsite_array[0] == "A":
-                            Latitude = testsite_array[1:]
+                            
+                        if testsite_array[0] == "A" and testsite_array[-1] == '\r':
+                            Latitude = ''.join(testsite_array[1:-1])
                             print("GPS Latitude: " + Latitude)
+                    else:
                         testsite_array = []
                 
             except:

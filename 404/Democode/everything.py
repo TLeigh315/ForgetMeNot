@@ -10,7 +10,6 @@ import time
 accelerometer = LIS3DH.LIS3DH() #Create LIS3DH accelerometer
 accel_sensor = AccelSensorHeader.accelerometer_sensor() #Create object for accelerometer_sensor class
 tempsensor = TempHeader1.temp_sensor()#Create MCP9808 temp sensor object
-alert = GSMheader.alert() #Create object for alert class
 #############################################################################
 
 # INITIAL ACCELEROMETER DATA###################################################
@@ -67,10 +66,8 @@ GPIO.output(GSMpower,1) #Turn on GSM
 # INITIAL TIMER DATA #########################################################
 start_program = 0
 timer = 0 #initiate timer
-#timer_speed = 1
-timer_speed = input("How fast do you want the timer (in seconds)?")
+timer_speed = 1
 ##############################################################################
-
 
 print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
 print("Maximum car temperature is: " + str(max))
@@ -93,26 +90,24 @@ def watchTemp (BLEtimer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time,
                 BLEfirst_alert = temperature['last_alert']
             
             if temperature['danger_temp_bit'] == 1: 
-                alert.danger_temp_alert(phonenum)
+                GSMheader.danger_temp_alert(phonenum)
 
             if temperature['temp_rate_bit'] == 1 :
-                alert.temp_rate_alert(phonenum)
+                GSMheader.temp_rate_alert(phonenum)
  
                 
         if ((EMS_time == 4*60) & (i>0)) : #if child's been alone 4 min since first temp alert call EMS
-            alert.EMS_call(phonenum)
-            TempHeader1.EMS_caller(repeat, talk_delay, car_color, car_make, car_model, Longitude, Lattitude)
+            GSMheader.EMS_call(phonenum,car_color, car_type, car_license, Longitude, Latitude)
             over = 1
             
         if (alone_time == 60*5) : #if child has been left in car for 5 min send warning text
-            alert.warning_alert(phonenum)
+            GSMheader.warning_alert(phonenum)
         
         if ((alone_time == 60*9) | ((EMS_time == 3*60) & (i>0))) : #if child has been left in safe temp car for 9 min or parent hasn't returned 3 min after first temp alert, tell parents that EMS is about to be contacted
-            alert.EMS_warning_alert(phonenum)
+            GSMheader.EMS_warning_alert(phonenum)
         
         if (alone_time > 60*10) : #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
-            alert.EMS_call(EMSnum)
-            TempHeader1.EMS_caller(repeat, talk_delay, car_color, car_make, car_model, Longitude, Long_Dir, Lattitude, Latt_Dir)
+            GSMheader.EMS_call(EMSnum,car_color, car_type, car_license, Longitude, Latitude)
             over = 1
             break
         
@@ -151,14 +146,14 @@ while True:
         lastz = moving['lastz']
 
         if moving['reed_bit'] == 1 : #if child unbuckled in moving car, text parent
-            alert.seat_belt_alert(phonenum)
+            GSMheader.seat_belt_alert(phonenum)
 
         #Moving into temp/BLEcheck
         print("Press BLEonbutton to symbolize parent's leaving child in car.")
 
         if (GPIO.input(BLEonbutton) == 1): #if ONLY the onbutton is pushed
             print("OnButton Pressed")
-            alert.warning_alert(phonenum) #send first warning text
+            GSMheader.warning_alert(phonenum) #send first warning text
         
             #Update values
             checktemp = watchTemp(timer, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart)
