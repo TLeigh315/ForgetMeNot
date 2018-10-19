@@ -1,5 +1,7 @@
 #!/usr/bin/python
 import thread
+from threading import Thread
+from Queue import Queue
 import RPi.GPIO as GPIO
 import subprocess
 import GSMheader
@@ -338,9 +340,6 @@ def connected2App(q, phonenum, backupnum, car_color, car_type, car_license, Long
 print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
 print("Maximum car temperature is: " + str(max))
 
-from threading import Thread
-from Queue import Queue
-    
 try:
     queue = Queue()
     thread1 = Thread( target=checkMovement, args=(queue, phonenum, backupnum, car_color, car_type, car_license, Longitude, Latitude, timer, last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert, BLElast_alert, BLEbase_time, base_temp) )
