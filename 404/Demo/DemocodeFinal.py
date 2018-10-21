@@ -125,47 +125,51 @@ def STOP():
             print("\r\n\r\nGoodbye!\n\n")
             return True
  
-def AloneAlerts (q, BLEtimer, phonenum, backupnum, car_color, car_type, car_license, LastKnownLongitude, LastKnownLatitude, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart) :
+def AloneAlerts (Q2, BLEtimer, phonenum, backupnum, car_color, car_type, car_license, LastKnownLongitude, LastKnownLatitude, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart) :
     i = 0
     left_alone_at = BLEtimer - BLEbase_time
     while True :
-        App_Longitude = q.get()
-        App_Latitude = q.get()
-        #calculate temperature alert parameters
-        temperature = tempsensor.Temperature(base_temp, BLEbase_time, BLEtimer, BLEstart, danger_rate, BLElast_alert, BLEfirst_alert, max)
-        alone_time = BLEtimer - left_alone_at
-        EMS_time = alone_time - BLEfirst_alert
-
-        print("Child has been alone for : " + str(alone_time) + " seconds") #TEMPORARY
+        App_Longitude = Q2.get()
+        App_Latitude = Q2.get()
         
-        if (temperature['danger_temp_bit'] | temperature['temp_rate_bit']) == 1 : #keep track of when first alert was made
-            i = i + 1 #determine if a temperature alert has been sent
-
-            if i == 1 : #only save time of first temperature alert once
-                BLEfirst_alert = temperature['last_alert'] #Save time of first temperature alert. Call for help in 4 min
+        if App_Latitude == "\r" and App_Longitude == "\r" : # System does not receive parent GPS Location, begin checking temperature
+            print("Begin monitoring temperature and alone time.")
             
-            if temperature['danger_temp_bit'] == 1: 
-                thread.start_new_thread(danger_temp_alert,(testnum,)) #if car is at a dangerous temperature, send text.
+            #calculate temperature alert parameters
+            temperature = tempsensor.Temperature(base_temp, BLEbase_time, BLEtimer, BLEstart, danger_rate, BLElast_alert, BLEfirst_alert, max)
+            alone_time = BLEtimer - left_alone_at
+            EMS_time = alone_time - BLEfirst_alert
+
+            print("Child has been alone for : " + str(alone_time) + " seconds") #TEMPORARY
+        
+            if (temperature['danger_temp_bit'] | temperature['temp_rate_bit']) == 1 : #keep track of when first alert was made
+                  i = i + 1 #determine if a temperature alert has been sent
+
+                  if i == 1 : #only save time of first temperature alert once
+                        BLEfirst_alert = temperature['last_alert'] #Save time of first temperature alert. Call for help in 4 min
+            
+                  if temperature['danger_temp_bit'] == 1: 
+                        thread.start_new_thread(danger_temp_alert,(testnum,)) #if car is at a dangerous temperature, send text.
                 
-            if temperature['temp_rate_bit'] == 1 :
-                thread.start_new_thread(temp_rate_alert , (testnum,)) #if car temp in increasing rapidly, send text.
+                  if temperature['temp_rate_bit'] == 1 :
+                        thread.start_new_thread(temp_rate_alert , (testnum,)) #if car temp in increasing rapidly, send text.
  
-        if ((EMS_time == 4*60) & (i>0)) : #if child's been alone 4 min since first temp alert call EMS
-            thread.start_new_thread(EMS_call ,(EMSnum,car_color, car_type, car_license, LastKnownLongitude, LastKnownLatitude))
+            if ((EMS_time == 4*60) & (i>0)) : #if child's been alone 4 min since first temp alert call EMS
+                  thread.start_new_thread(EMS_call ,(EMSnum,car_color, car_type, car_license, LastKnownLongitude, LastKnownLatitude))
             
-        if (alone_time == 60*5) : #if child has been left in car for 5 min send warning text
-            thread.start_new_thread(warning_alert,(testnum,))
+            if (alone_time == 60*5) : #if child has been left in car for 5 min send warning text
+                  thread.start_new_thread(warning_alert,(testnum,))
         
-        if ((alone_time == 60*9) | ((EMS_time == 3*60) & (i>0))) : #if child has been left in safe temp car for 9 min or parent hasn't returned 3 min after first temp alert, tell parents that EMS is about to be contacted
-            thread.start_new_thread(EMS_warning_alert,(testnum,))
+            if ((alone_time == 60*9) | ((EMS_time == 3*60) & (i>0))) : #if child has been left in safe temp car for 9 min or parent hasn't returned 3 min after first temp alert, tell parents that EMS is about to be contacted
+                  thread.start_new_thread(EMS_warning_alert,(testnum,))
         
-        if (alone_time > 60*10) : #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
-            thread.start_new_thread(EMS_call ,(EMSnum,car_color, car_type, car_license, LastKnownLongitude, LastKnownLatitude))
-            break
+            if (alone_time > 60*10) : #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
+                  thread.start_new_thread(EMS_call ,(EMSnum,car_color, car_type, car_license, LastKnownLongitude, LastKnownLatitude))
+              
         
-        time.sleep(timer_speed) # wait for 1 second
+            time.sleep(timer_speed) # wait for 1 second
         
-        if App_Latitude != "\r" or App_Longitude != "\r" : # System begins recieving parent GPS Location, go back to checking if child is unbuckled in moving car
+        else: # System begins recieving parent GPS Location, go back to checking if child is unbuckled in moving car
             print("App Reconnected")
             #Reset first and last temp alerts when parent returns (offbutton is pushed)
             BLElast_alert = 0  
@@ -178,9 +182,7 @@ def AloneAlerts (q, BLEtimer, phonenum, backupnum, car_color, car_type, car_lice
         BLEstart = temperature['start']
         BLElast_alert = temperature['last_alert']
         BLEtimer = BLEtimer + 1
-        
-    return {"BLEtimer" : BLEtimer, "BLEfirst_alert" : BLEfirst_alert, "BLElast_alert" : BLElast_alert, "base_temp" : base_temp, "BLEbase_time" : BLEbase_time, "BLEstart" : BLEstart}
-
+      
 def checkMovement(q, phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude,timer, last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert, BLElast_alert, BLEbase_time, base_temp):
     try:
         while (True):
@@ -255,9 +257,9 @@ def checkMovement(q, phonenum,backupnum,car_color,car_type,car_license,Longitude
                 thread.start_new_thread(warning_alert , (testnum,))#send first warning text
             
                 #Update values
-                q.put(App_Latitude)
-                q.put(App_Longitude)
-                checkchild = AloneAlerts(q,timer, phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart)
+                Q2.put(App_Latitude)
+                Q2.put(App_Longitude)
+                checkchild = AloneAlerts(Q2,timer, phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart)
                 BLEfirst_alert = checkchild['BLEfirst_alert']
                 BLElast_alert = checkchild['BLElast_alert']
                 BLEbase_time = checkchild['BLEbase_time']
@@ -342,6 +344,7 @@ print("Maximum car temperature is: " + str(max))
 
 try:
     queue = Queue()
+    Q2 = Queue()
     thread1 = Thread( target=checkMovement, args=(queue, phonenum, backupnum, car_color, car_type, car_license, Longitude, Latitude, timer, last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert, BLElast_alert, BLEbase_time, base_temp) )
     thread2 = Thread( target=connected2App, args=(queue, phonenum, backupnum, car_color, car_type, car_license, Longitude, Latitude) )
 
