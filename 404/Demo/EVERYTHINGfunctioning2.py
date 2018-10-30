@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import thread
-from threading import Thread
 import RPi.GPIO as GPIO
 import subprocess
 import GSMheader
@@ -31,6 +30,7 @@ last_alert = 0
 
 ###########################################################################################
 BLEstart_time = 0 #TEMPORARY
+BLEtimer = BLEstart_time #inital timer value. Timer will be in seconds
 BLElast_alert = 0 #time since last alert
 danger_rate = 1.9
 base_temp = 0
@@ -38,44 +38,40 @@ BLEbase_time = 0
 temp_rate = 0 #difference between current and last temperature
 BLEstart = 0 #will be zero only for timer = 1
 #BLEtimer_speed = 1 #TEMPORARY timer iterates once/second USING timer_speed instead
-maxtemp = 89 #maximum temperature
+max = 89 #maximum temperature
 BLEfirst_alert= 0 #time of first alert
 over = 0 # will allow program to end when EMS is called
 #########################################################################################
 
 ############################################################################
+##repeat = 5 #how many times voice call will run
+##talk_delay = 10 #how long to wait before beginning to talk
+testnum = "8327978415"
 EMSnum = "8327978415"
-phonenum = "8304809421"
+phonenum = testnum
 backupnum = "\r"
 car_color = "\r"
 car_type = "\r"
-License_plate = "\r"
+car_license = "\r"
 Longitude = "\r"
 Latitude = "\r"
-connection_bit = "\r"
-running = False
 #############################################################################
 
 # SETUP GPIO PINS############################################################################
 reed_pin = 36
 GSMpower = 11
-GSMreset = 12
 BLEonbutton = 40 #TEMPORARY onbutton represents parent leaving BLE range
 BLEoffbutton= 38 #offbutton represents parent returning to BLE Range
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(reed_pin, GPIO.IN, GPIO.PUD_DOWN)
 GPIO.setup(BLEonbutton,GPIO.IN, GPIO.PUD_DOWN)  #TEMPORARY
 GPIO.setup(BLEoffbutton,GPIO.IN, GPIO.PUD_DOWN)
-GPIO.setup(GSMreset,GPIO.OUT)
 GPIO.setup(GSMpower,GPIO.OUT)
 GPIO.output(GSMpower,1) #Turn on GSM
-GPIO.output(GSMreset,1) #Turn on GSM
-GPIO.output(GSMreset,0) #Turn on GSM
 ##############################################################################
 
 # INITIAL TIMER DATA #########################################################
 start_program = 0
-global timer
 timer = 0 #initiate timer
 timer_speed = .5
 ##############################################################################
@@ -83,37 +79,31 @@ timer_speed = .5
 def seat_belt_alert( textnumber):
     message = "Your child is unbuckled in a moving car!"
     GSMheader.StayorGoSMS(textnumber,message)
-##    sys.exit()
 
 def warning_alert(textnumber):
     message = "Child has been left in car alone!"
     GSMheader.StayorGoSMS(textnumber,message)
-##    sys.exit()
 
 def danger_temp_alert(textnumber):
     message = "Your child has been left alone in a hot car. Return to your car immediately!"
     GSMheader.StayorGoSMS(textnumber,message)
-##    sys.exit()
     
 def temp_rate_alert(textnumber):
     message = "Your child has been left in the car, and the temperature is rising rapidly. Return to your car immediately!"
     GSMheader.StayorGoSMS(textnumber,message)
-##    sys.exit()
     
 def EMS_warning_alert(textnumber):
     message = "Your child is still alone in a car after several alerts. Please return to your car immediately. EMS will be contacted in 60 seconds."
     GSMheader.StayorGoSMS(textnumber,message)
-##    sys.exit()
     
 def parent_EMS_not(textnumber):
     message = "EMS has been contacted. Your child has been left in a car alone for an extended period of time. Please return to your car immediately!"
     GSMheader.StayorGoSMS(textnumber,message)
-##    sys.exit()
 
-def EMS_call(callnumber,car_color, car_type, License_plate, Longitude, Latitude):
+def EMS_call(callnumber,car_color, car_type, car_license, Longitude, Latitude):
     GSMheader.FlushSerial()
     GSMerror = 0 # Keeps track of how many times GSM has thrown an error
-    success = GSMheader.GSMcall(callnumber,car_color, car_type, License_plate, Longitude, Latitude) #Call and let us know if attempt was succesfull
+    success = GSMheader.GSMcall(callnumber,car_color, car_type, car_license, Longitude, Latitude) #Call and let us know if attempt was succesfull
     while True:
         if  success == 1:
             print("SMS successful. Total GSM errors: " + str(GSMerror))
@@ -122,8 +112,7 @@ def EMS_call(callnumber,car_color, car_type, License_plate, Longitude, Latitude)
         else:
             GSMheader.FlushSerial()
             GSMerror = GSMheader.GSMerrorfunc(GSMerror) #Update the GSMerror count
-            success = GSMheader.GSMcall(callnumber,car_color, car_type, License_plate, Longitude, Latitude) #Resend text
-##    sys.exit()        
+            success = GSMheader.GSMcall(callnumber,car_color, car_type, car_license, Longitude, Latitude) #Resend text
 
 def STOP():     
     if GPIO.input(BLEoffbutton) == 1 : # If offbutton is pushed reset values and send program ending warning
@@ -135,42 +124,16 @@ def STOP():
         if GPIO.input(BLEoffbutton) == 1 : # If offbutton is pushed end program
             print("\r\n\r\nGoodbye!\n\n")
             return True
-
-##def threadprocess(mythread,number):
-##    newthread = Thread( target = mythread, args = (phonenum,))
-##    newthread.start()
-##    while True:
-##        if newthread.isAlive() == False:
-##            break
-        
-def watchTemp (phonenum,backupnum,car_color,car_type,License_plate,Longitude,Latitude, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart) :
-    global connection_bit
-    global timer
-    active = threading.active_count()
+ 
+def watchTemp (BLEtimer,phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart) :
     i = 0
-    left_alone_at = timer - BLEbase_time
-    
-    if active <= 3:
-        warningSMS = threading.Thread(target = warning_alert ,args = (phonenum,))#send first warning text
-        warningSMS.start()
-        
+    left_alone_at = BLEtimer - BLEbase_time
     while True :
-        active = threading.active_count()
-        print("Active Threads: " + str(active))
-        print("Phone Disconnected")
-        print("Primary Phone: " + str(phonenum))
-        print("Backup Phone: " + str(backupnum))
-        print("Car Color: " + str(car_color))
-        print("Car Type: " + str(car_type))
-        print("License Plate: " + str(License_plate))
-        print("Last Known GPS Longitude: " + str(Longitude))
-        print("Last Known GPS Latitude: " + str(Latitude))
-        
         #calculate temperature alert parameters
-        temperature = tempsensor.Temperature(base_temp, BLEbase_time, timer, BLEstart, danger_rate, BLElast_alert, BLEfirst_alert, maxtemp)
-        alone_time = timer - left_alone_at
+        temperature = tempsensor.Temperature(base_temp, BLEbase_time, BLEtimer, BLEstart, danger_rate, BLElast_alert, BLEfirst_alert, max)
+        alone_time = BLEtimer - left_alone_at
         EMS_time = alone_time - BLEfirst_alert
-        
+
         print("Child has been alone for : " + str(alone_time) + " seconds") #TEMPORARY
         
         if (temperature['danger_temp_bit'] | temperature['temp_rate_bit']) == 1 : #keep track of when first alert was made
@@ -179,41 +142,33 @@ def watchTemp (phonenum,backupnum,car_color,car_type,License_plate,Longitude,Lat
             if i == 1 : #only save time of first temperature alert once
                 BLEfirst_alert = temperature['last_alert'] #Save time of first temperature alert. Call for help in 4 min
             
-            if temperature['danger_temp_bit'] == 1 & (active<=3): 
-                dangertempSMS = threading.Thread(target = danger_temp_alert,args = (testnum,)) #if car is at a dangerous temperature, send text.
-                dangertempSMS.start()
-            if temperature['temp_rate_bit'] == 1 & (active<=3):
-                temprateSMS = threading.Thread(target = temp_rate_alert ,args = (testnum,)) #if car temp in increasing rapidly, send text.
-                temprateSMS.start()
+            if temperature['danger_temp_bit'] == 1: 
+                thread.start_new_thread(danger_temp_alert,(testnum,)) #if car is at a dangerous temperature, send text.
+                
+            if temperature['temp_rate_bit'] == 1 :
+                thread.start_new_thread(temp_rate_alert , (testnum,)) #if car temp in increasing rapidly, send text.
+
  
-        if (((EMS_time == 4*60) & (i>0)) & (active<=3): #if child's been alone 4 min since first temp alert call EMS
-            EMStempcalling = threading.Thread(target = EMS_call ,args = (EMSnum,car_color, car_type, License_plate, Longitude, Latitude))
-            EMStempcalling.start()
-            running = EMStempcalling.isAlive()
-            break
+        if ((EMS_time == 4*60) & (i>0)) : #if child's been alone 4 min since first temp alert call EMS
+            thread.start_new_thread(EMS_call ,(EMSnum,car_color, car_type, car_license, Longitude, Latitude))
+            over = 1
             
-        if (alone_time == 60*5) & (active<=3): #if child has been left in car for 5 min send warning text
-            warningSMS2 = threading.Thread(target = warning_alert,args = (phonenum,))
-            warningSMS2.start()
+        if (alone_time == 60*5) : #if child has been left in car for 5 min send warning text
+            thread.start_new_thread(warning_alert,(testnum,))
         
-        if (((alone_time == 60*9) | ((EMS_time == 3*60) & (i>0))) & (active<=3)) : #if child has been left in safe temp car for 9 min or parent hasn't returned 3 min after first temp alert, tell parents that EMS is about to be contacted
-            EMSwarningSMS = threading.Thread(target = EMS_warning_alert,args = (phonenum,))
-            EMSwarningSMS.start()
+        if ((alone_time == 60*9) | ((EMS_time == 3*60) & (i>0))) : #if child has been left in safe temp car for 9 min or parent hasn't returned 3 min after first temp alert, tell parents that EMS is about to be contacted
+            thread.start_new_thread(EMS_warning_alert,(testnum,))
         
-        if (alone_time == 60*10) & (active<=3): #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
-            EMScalling = threading.Thread(target = EMS_call ,args = (EMSnum,car_color, car_type, License_plate, Longitude, Latitude))
-            EMScalling.start()
-            running = EMScalling.isAlive()
-            left_alone_at = timer
+        if (alone_time > 60*10) : #if child has ben left in car for 10 min , tell parents that EMS has been contacted and call EMS
+            thread.start_new_thread(EMS_call ,(EMSnum,car_color, car_type, car_license, Longitude, Latitude))
+            over = 1
             break
-            
         
         time.sleep(timer_speed) # wait for 1 second
         
-        if connection_bit == "1" : # System begins recieving parent GPS Location, go back to checking if child is unbuckled in moving car
+        if GPIO.input(BLEoffbutton) == 1 : # System begins recieving parent GPS Location, go back to checking if child is unbuckled in moving car
             print("App Reconnected")
             #Reset first and last temp alerts when parent returns (offbutton is pushed)
-            BLEbase_time = 0
             BLElast_alert = 0  
             BLEfirst_alert = 0
             break
@@ -223,35 +178,58 @@ def watchTemp (phonenum,backupnum,car_color,car_type,License_plate,Longitude,Lat
         BLEbase_time = temperature['base_time']
         BLEstart = temperature['start']
         BLElast_alert = temperature['last_alert']
-        timer = timer + 1
+        BLEtimer = BLEtimer + 1
         
-    return {"BLEfirst_alert" : BLEfirst_alert, "BLElast_alert" : BLElast_alert, "base_temp" : base_temp, "BLEbase_time" : BLEbase_time, "BLEstart" : BLEstart}
+    return {"BLEtimer" : BLEtimer, "BLEfirst_alert" : BLEfirst_alert, "BLElast_alert" : BLElast_alert, "base_temp" : base_temp, "BLEbase_time" : BLEbase_time, "BLEstart" : BLEstart}
 
-def checkMovement(last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert, BLElast_alert, BLEbase_time, base_temp):
+def checkMovement(phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude,timer, last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert, BLElast_alert, BLEbase_time, base_temp):
     try:
         while (True):
-            
-            global phonenum
-            global backupnum
-            global car_color
-            global car_type
-            global License_plate
-            global Longitude
-            global Latitude
-            global connection_bit
-            global timer
-            global running
-            
             print("\r\nCurrent time is: " +str(timer))
-            print("Primary Phone: " + str(phonenum))
-            print("Backup Phone: " + str(backupnum))
-            print("Car Color: " + str(car_color))
-            print("Car Type: " + str(car_type))
-            print("License Plate: " + str(License_plate))
-            print("Last Known GPS Longitude: " + str(Longitude))
-            print("Last Known GPS Latitude: " + str(Latitude))
+        
+
+            #Update contact and calling information
+##            if App_phonenum == "\r": phonenum = phonenum
+##            else:
+##                phonenum = App_phonenum
+##                print("Primary Phone: " + str(phonenum))
+##            
+##            if App_backupnum == "\r": backupnum = backupnum
+##            else:
+##                backupnum = App_backupnum
+##                print("Backup Phone: " + str(App_backupnum))
+##            
+##            if App_car_color == "\r": car_color = car_color
+##            else:
+##                car_color = App_car_color
+##                print("Car Color: " + str(car_color))
+##            
+##            if App_car_type == "\r": car_type = car_type
+##            else:
+##                car_type = App_car_type
+##                print("Car Type: " + str(car_type))
+##            
+##            if App_car_license == "\r": car_license = car_license
+##            else:
+##                car_license = App_car_license
+##                print("License Plate: " + str(car_license))
+##
+##            if App_Longitude == "\r":
+##                Longitude = Longitude
+##                print("Last Known GPS Longitude: " + str(Longitude))
+##            else:
+##                Longitude = App_Longitude
+##                print("GPS Longitude: " + str(App_Longitude))
+##
+##            if App_Latitude == "\r":
+##                Latitude = Latitude
+##                print("Last Known GPS Latitude: " + str(Latitude))
+##            else:
+##                Latitude = App_Latitude
+##                print("GPS Latitude: " + str(App_Latitude))
+
+            #Begin checking if child is unbuckled in moving car
             print("Last seat belt alert time: " + str(last_alert))
-            print("Phone is connected")
     
             moving = accel_sensor.Accelerometer_sensor(timer, GPIO.input(reed_pin), movingcar, last_alert, start_program, lastx, lasty ,lastz)
 
@@ -263,17 +241,18 @@ def checkMovement(last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert
             lastz = moving['lastz']
 
             if moving['reed_bit'] == 1 : #if child unbuckled in moving car, text parent
-                seatbeltSMS = threading.Thread(target = seat_belt_alert ,args = (phonenum,))
-                seatbeltSMS.start()
+                thread.start_new_thread(seat_belt_alert , (testnum,))
 
-            if connection_bit == "0" : #Disconnected from App begin Temp/Timer alert procedure
-                          
+            if GPIO.input(BLEonbutton) == 1 : #Disconnected from App begin Temp/Timer alert procedure
+                thread.start_new_thread(warning_alert , (testnum,))#send first warning text
+            
                 #Update values
-                checktemp = watchTemp(phonenum,backupnum,car_color,car_type,License_plate,Longitude,Latitude, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart)
+                checktemp = watchTemp(timer, phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude, BLEfirst_alert, BLElast_alert, base_temp, BLEbase_time, BLEstart)
                 BLEfirst_alert = checktemp['BLEfirst_alert']
                 BLElast_alert = checktemp['BLElast_alert']
                 BLEbase_time = checktemp['BLEbase_time']
                 base_temp = checktemp['base_temp']
+                timer = checktemp['BLEtimer']
                 last_alert = 0 # Reset seat belt last #Reset first and last temp alerts when parent returns (offbutton is pushed)
                 BLElast_alert = 0  
                 BLEfirst_alert = 0
@@ -284,16 +263,8 @@ def checkMovement(last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert
     except StopIteration as err:
         print("GSM has thrown three errors. Check GSM. Exiting Main Procedure Code.")
 
-def assigndata(data):
-    global phonenum
-    global backupnum
-    global car_color
-    global car_type
-    global License_plate
-    global Longitude
-    global Latitude
-    global connection_bit
-    
+def assigndata(data,phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude):
+                    
     testsite_array = []
     for line in data:
         if line != "\n":
@@ -310,22 +281,21 @@ def assigndata(data):
             if testsite_array[0] == "T" and testsite_array[-1] == '\r':
                 car_type = ''.join(testsite_array[1:-1])
               
-            if testsite_array[0] == "H" and testsite_array[-1] == '\r':
-                License_plate = ''.join(testsite_array[1:-1])
+            if testsite_array[0] == "L" and testsite_array[-1] == '\r':
+                car_license = ''.join(testsite_array[1:-1])
               
             if testsite_array[0] == "O" and testsite_array[-1] == '\r':
                 Longitude = ''.join(testsite_array[1:-1])
               
             if testsite_array[0] == "A" and testsite_array[-1] == '\r':
                 Latitude = ''.join(testsite_array[1:-1])
-                
-            if testsite_array[0] == "R" and testsite_array[-1] == '\r':
-                connection_bit = ''.join(testsite_array[1:-1])
+
         else:
                 testsite_array = []
-                     
-def connected2App():  
-    global connection_bit
+
+    return {'phonenum':phonenum, 'backupnum':backupnum, 'car_color':car_color, 'car_type':car_type, 'car_license':car_license, 'Longitude':Longitude, 'Latitude':Latitude}
+                       
+def connected2App(phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude):  
     while (True):
         server_sock=bluetooth.BluetoothSocket(bluetooth.RFCOMM)
         port = 1
@@ -338,15 +308,19 @@ def connected2App():
 
             while (True):
                 try:
-                    connection_bit = "1"
-                    assigndata(client_sock.recv(1024))
+                    data = client_sock.recv(1024)
+                    print(data)
+                    assigndata(data,phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude)
+
                     
                 except:
                     print "App has disconnected"
                     address = 0 #reset address
-                    connection_bit = "0"
+                    stop = input("Try again? [Y=1 and N=2]")
                     break #break loop begin checking if phone has reconnected
-        if STOP() == True: break
+                if GPIO.input(BLEoffbutton) == 1: break
+
+        if stop == 2: break
         
     client_sock.close()
     server_sock.close()
@@ -354,22 +328,21 @@ def connected2App():
         
 ###############START OF PROGRAM############################################
 print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
-print("Maximum car temperature is: " + str(maxtemp))
+print("Maximum car temperature is: " + str(max))
 # Create two threads as follows
+##from multiprocessing.pool import ThreadPool
+##pool = ThreadPool(processes=1)
 from threading import Thread
 from Queue import Queue
-import threading
-import time
-import random
     
 try:
-    thread1 = threading.Thread( target=checkMovement,name = 'Movement Check', args= (last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert, BLElast_alert, BLEbase_time, base_temp))
-    thread2 = threading.Thread( target=connected2App,name = 'Bluetooth', args=() )
+    thread1 = Thread( target=checkMovement, args=(phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude, timer, last_alert, start_program, lastx, lasty, lastz, BLEfirst_alert, BLElast_alert, BLEbase_time, base_temp) )
+##    thread2 = Thread( target=connected2App, args=(phonenum,backupnum,car_color,car_type,car_license,Longitude,Latitude) )
 
     thread1.start()
-    thread2.start()
+##    thread2.start()
     thread1.join()
-    thread2.join()
+##    thread2.join()
 
 except:
     print "Error: unable to start thread"

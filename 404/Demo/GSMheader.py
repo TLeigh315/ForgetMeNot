@@ -32,6 +32,8 @@ def GSMconvo( message):
     if rcv == "ERROR\r\n": raise ValueError("Returning to the GSM function")
   
 def GSMsms (textnumber, textmessage):
+    textnumber = str(textnumber)
+    textmessage = str(textmessage)
     try:
         # Transmitting AT Commands to the Modem
         GSMconvo('AT')
@@ -96,30 +98,6 @@ def StayorGoSMS(textnumber,message):
             FlushSerial()
             GSMerror = GSMerrorfunc(GSMerror) #Update the GSMerror count
             success = GSMsms(textnumber,message) #Resend text
-     
-def seat_belt_alert( textnumber):
-    message = "Your child is unbuckled in a moving car!"
-    StayorGoSMS(textnumber,message)
-
-def warning_alert(textnumber):
-    message = "Child has been left in car alone!"
-    StayorGoSMS(textnumber,message)
-
-def danger_temp_alert(textnumber):
-    message = "Your child has been left alone in a hot car. Return to your car immediately!"
-    StayorGoSMS(textnumber,message)
-    
-def temp_rate_alert(textnumber):
-    message = "Your child has been left in the car, and the temperature is rising rapidly. Return to your car immediately!"
-    StayorGoSMS(textnumber,message)
-    
-def EMS_warning_alert(textnumber):
-    message = "Your child is still alone in a car after several alerts. Please return to your car immediately. EMS will be contacted in 60 seconds."
-    StayorGoSMS(textnumber,message)
-    
-def parent_EMS_not(textnumber):
-    message = "EMS has been contacted. Your child has been left in a car alone for an extended period of time. Please return to your car immediately!"
-    StayorGoSMS(textnumber,message)
 
 def EMS_call(callnumber,car_color, car_type, car_license, Longitude, Latitude):
     FlushSerial()
@@ -200,43 +178,44 @@ def EMScaller(car_color, car_type, car_license, Longitude, Latitude):
     And = pygame.mixer.Sound("And.wav")
     License_Plate_Intro = pygame.mixer.Sound("License_Plate_Intro.wav")
 
-    Intro.play()
-    time.sleep(9)
+    for repeat in range(0,5):
+        Intro.play()
+        time.sleep(9)
 
-    Car_Intro.play()
-    time.sleep(3)
+        Car_Intro.play()
+        time.sleep(3)
 
-    RpiSays(car_color)
-    RpiSays(car_type)
+        RpiSays(car_color)
+        RpiSays(car_type)
 
-    License_Plate_Intro.play()
-    time.sleep(2.5)
-    for letter in car_license:
-        RpiSays(militaryABC(letter))
-        time.sleep(.5)
+        License_Plate_Intro.play()
+        time.sleep(2.5)
+        for letter in car_license:
+            RpiSays(militaryABC(letter))
+            time.sleep(.3)
 
-    GPS_Intro.play()
-    time.sleep(3)
-       
+        GPS_Intro.play()
+        time.sleep(3)
+           
 
-    if Longitude < 0:
-        RpiSays(Longitude*-1)
-        South.play()
-    else:
-        RpiSays(Longitude)
-        North.play()
-    time.sleep(1.5)
+        if int(Longitude) < 0:
+            RpiSays(Longitude*(-1))
+            South.play()
+        else:
+            RpiSays(Longitude)
+            North.play()
+        time.sleep(1.5)
 
-    And.play()
-    time.sleep(2)
+        And.play()
+        time.sleep(2)
 
-    if Latitude < 0:
-        RpiSays(Latitude*-1)
-        West.play()
-    else:
-        RpiSays(Latitude)
-        East.play()
-    time.sleep(2)
+        if int(Latitude) < 0:
+            RpiSays(Latitude*(-1))
+            West.play()
+        else:
+            RpiSays(Latitude)
+            East.play()
+        time.sleep(2)
     pygame.display.quit()
     pygame.quit()
 
