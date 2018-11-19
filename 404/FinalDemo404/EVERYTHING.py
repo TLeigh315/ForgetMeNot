@@ -59,7 +59,8 @@ camera_first_alert = 0
 
 ############################################################################
 EMSnum = "8327978415"
-phonenum = "8304809421"
+phonenum = "8327978415"
+#phonenum = "8304809421"
 backupnum = "\r"
 car_color = "\r"
 car_type = "\r"
@@ -74,6 +75,9 @@ reed_pin = 40
 Speaker = 38
 GSMpower = 11
 GSMreset = 12
+BLELED = 35
+TextingLED = 36
+CallingLED = 33
 GPIO_ButtonShutdown = 32
 GPIO.setmode(GPIO.BOARD)
 
@@ -82,7 +86,14 @@ GPIO.add_event_detect(GPIO_ButtonShutdown, GPIO.RISING)
 
 GPIO.setup(reed_pin, GPIO.IN, GPIO.PUD_DOWN)
 GPIO.setup(Speaker,GPIO.OUT)
+
+GPIO.setup(BLELED,GPIO.OUT)
+GPIO.setup(TextingLED,GPIO.OUT)
+GPIO.setup(CallingLED,GPIO.OUT)
 GPIO.output(Speaker,0) #Initialize Speaker as off
+GPIO.output(TextingLED,0)
+GPIO.output(CallingLED,0)
+GPIO.output(BLELED,0)
 
 GPIO.setup(GSMreset,GPIO.OUT)
 GPIO.setup(GSMpower,GPIO.OUT)
@@ -110,38 +121,52 @@ def seat_belt_alert( textnumber):
 
 def warning_alert(textnumber):
     message = "Child has been left in car alone!"
+    GPIO.output(TextingLED,1)
     GSMheader.StayorGoSMS(textnumber,message)
+    GPIO.output(TextingLED,0)
 
 def danger_temp_alert(textnumber):
     message = "Your child has been left alone in a hot car. Return to your car immediately!"
+    GPIO.output(TextingLED,1)
     GSMheader.StayorGoSMS(textnumber,message)
+    GPIO.output(TextingLED,0)
     
 def temp_rate_alert(textnumber):
+    GPIO.output(TextingLED,1)
     message = "Your child has been left in the car, and the temperature is rising rapidly. Return to your car immediately!"
     GSMheader.StayorGoSMS(textnumber,message)
+    GPIO.output(TextingLED,0)
     
 def EMS_warning_alert(textnumber):
+    GPIO.output(TextingLED,1)
     message = "Your child is still alone in a car after several alerts. Please return to your car immediately. EMS will be contacted in 60 seconds."
     GSMheader.StayorGoSMS(textnumber,message)
+    GPIO.output(TextingLED,0)
     
 def parent_EMS_not(textnumber):
+    GPIO.output(TextingLED,1)
     message = "EMS has been contacted. Your child has been left in a car alone for an extended period of time. Please return to your car immediately!"
     GSMheader.StayorGoSMS(textnumber,message)
+    GPIO.output(TextingLED,0)
 
 def EMS_call(callnumber,car_color, car_type, License_plate, Longitude, Latitude):
     GSMheader.FlushSerial()
+    GPIO.output(CallingLED,1)
     GSMerror = 0 # Keeps track of how many times GSM has thrown an error
     success = GSMheader.GSMcall(callnumber,car_color, car_type, License_plate, Longitude, Latitude) #Call and let us know if attempt was succesfull
     while True:
         if  success == 1:
             print("SMS successful. Total GSM errors: " + str(GSMerror))
+            GPIO.output(CallingLED,0)
             return GSMerror #Send updated GSM error count to Main function
             break #If Message was sent successully, continue with Main Code
         else:
             GSMheader.FlushSerial()
             GSMerror = GSMheader.GSMerrorfunc(GSMerror) #Update the GSMerror count
             success = GSMheader.GSMcall(callnumber,car_color, car_type, License_plate, Longitude, Latitude) #Resend text
-
+            GPIO.output(CallingLED,1)
+    
+    
 def capture(flip_v = False, device = "/dev/spidev0.0"):
   with Lepton(device) as l:
     a,_ = l.capture()
@@ -206,7 +231,7 @@ def watchTemp (phonenum,backupnum,car_color,car_type,License_plate,Longitude,Lat
         
         #calculate temperature alert parameters
         temperature = tempsensor.Temperature(base_temp, base_time, timer, tempstart, danger_rate, last_alert, first_alert, maxtemp)
-        if timer < 3: cameraTemp = 97
+        if timer < 10: cameraTemp = 97
         childTemperature = tempsensor.CameraTemperature(child_base_temp, child_base_time, timer, camera_start, child_danger_rate, camera_last_alert, camera_first_alert, child_maxtemp, cameraTemp)
         
         alone_time = timer - left_alone_at
@@ -297,7 +322,7 @@ def watchTemp (phonenum,backupnum,car_color,car_type,License_plate,Longitude,Lat
         camera_last_alert = childTemperature['camera_last_alert']
         timer = timer + 1
         
-    return {"first_alert" : first_alert, "last_alert" : last_alert, "base_temp" : base_temp, "base_time" : base_time, "tempstart" : tempstart, "Childtempstart" : Childtempstart}
+    return {"first_alert" : first_alert, "last_alert" : last_alert, "base_temp" : base_temp, "base_time" : base_time, "tempstart" : tempstart, "camera_start" : camera_start}
 
 def checkMovement(last_caralert, start_program, lastx, lasty, lastz, first_alert, last_alert, base_time, base_temp,tempstart, danger_rate, maxtemp, child_base_temp, child_base_time, camera_start, child_danger_rate, camera_last_alert, camera_first_alert, child_maxtemp):
     try:
@@ -325,6 +350,7 @@ def checkMovement(last_caralert, start_program, lastx, lasty, lastz, first_alert
             print("Last seat belt alert time: " + str(last_alert))
             print("Camera temperature in degrees F: " + str(cameraTemp))
             print("Connection bit: " + str(connection_bit))
+            print("Reed pin: " + str(GPIO.input(reed_pin)))
     
             moving = accel_sensor.Accelerometer_sensor(timer, GPIO.input(reed_pin), movingcar, last_caralert, start_program, lastx, lasty ,lastz)
 
@@ -339,7 +365,7 @@ def checkMovement(last_caralert, start_program, lastx, lasty, lastz, first_alert
                 GPIO.output(Speaker,1) #Turn on Speaker
             else: GPIO.output(Speaker,0) #Turn off Speaker
 
-            if connection_bit == "0" : #Disconnected from App begin Temp/Timer alert procedure
+            if connection_bit == "0" and timer > 3: #Disconnected from App begin Temp/Timer alert procedure
                           
                 #Update values
                 checktemp = watchTemp(phonenum,backupnum,car_color,car_type,License_plate,Longitude,Latitude, first_alert, last_alert, base_temp, base_time, tempstart, danger_rate, maxtemp, child_base_temp, child_base_time, camera_start, child_danger_rate, camera_last_alert, camera_first_alert, child_maxtemp)
@@ -348,7 +374,7 @@ def checkMovement(last_caralert, start_program, lastx, lasty, lastz, first_alert
                 base_temp = checktemp['base_temp']
                 base_time = checktemp['base_time']
                 tempstart = checktemp['tempstart']
-                Childtempstart = checktemp['Childtempstart']
+                Childtempstart = checktemp['camera_start']
                 last_alert = 0 # Reset seat belt last #Reset first and last temp alerts when parent returns (offbutton is pushed)
                 BLElast_alert = 0  
                 BLEfirst_alert = 0
@@ -413,10 +439,12 @@ def connected2App():
             while (True):
                 try:
                     connection_bit = "1"
+                    GPIO.output(BLELED,1)
                     assigndata(client_sock.recv(1024))
                     
                 except:
                     print "App has disconnected"
+                    GPIO.output(BLELED,0)
                     address = 0 #reset address
                     connection_bit = "0"
                     break #break loop begin checking if phone has reconnected
@@ -431,12 +459,17 @@ print("Maximum car temperature is: " + str(maxtemp))
 # Create two threads as follows
 GPIO.add_event_callback(GPIO_ButtonShutdown, ShutdownPressed)
 
+for x in range (0,3):
+    GPIO.output(Speaker,1)
+    time.sleep(.2)
+    GPIO.output(Speaker,0)
+    
 try:
     thread1 = threading.Thread( target=checkMovement,name = 'Movement Check', args= (last_caralert, start_program, lastx, lasty, lastz, first_alert, last_alert, base_time, base_temp, tempstart, danger_rate, maxtemp, child_base_temp, child_base_time, camera_start, child_danger_rate, camera_last_alert, camera_first_alert, child_maxtemp))
-##    thread2 = threading.Thread( target=connected2App,name = 'Bluetooth', args=() )
+    thread2 = threading.Thread( target=connected2App,name = 'Bluetooth', args=() )
 
     thread1.start()
-##    thread2.start()
+    thread2.start()
 
     camerathread = threading.Thread( target=cameraTemp, args=() )
     camerathread.start()
