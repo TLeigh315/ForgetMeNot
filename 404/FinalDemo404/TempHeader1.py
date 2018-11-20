@@ -53,7 +53,7 @@ class temp_sensor():
         return TempF
     
     def calc_rate(self, temp, base_temp, base_time, timer, start):
-        
+
         if start== 0: #check if program just started
             start = 1
             last_temp = temp #ignore initial last_temp value
@@ -61,6 +61,7 @@ class temp_sensor():
             base_time = timer
                
         temp_rate = temp - base_temp # calculate how fast temperature has changed in last minute
+
         print("Temperature change within the last minute : " + str(temp_rate))
         
         if (timer-base_time) > 59 : #Check if minute has passed
@@ -81,7 +82,7 @@ class temp_sensor():
 
         print ("Current Temperature in Fahrenheit : %.2f F"%(temp)) #Display temperature
         
-        if str(temp) > str(maxtemp): #check if current temp is higher than defined max temp
+        if temp > maxtemp: #check if current temp is higher than defined max temp
             print("Dangerously hot temperatures!")
             if last_alert == 0 :
                 last_alert=timer
@@ -109,6 +110,24 @@ class temp_sensor():
         
         return {"base_temp" : base_temp, "base_time" : base_time, "start" : start, "last_alert" : last_alert, "temp_rate_bit" : temp_rate_bit, "danger_temp_bit" : danger_temp_bit}
 
+    def Camera_calc_rate(self, temp, base_temp, base_time, timer, start):
+
+        if start== 0: #check if program just started
+            start = 1
+            last_temp = temp #ignore initial last_temp value
+            base_temp = temp #set base temp. Will be updated every minute
+            base_time = timer
+               
+        temp_rate = temp - base_temp # calculate how fast temperature has changed in last minute
+
+        print("Camera temperature change within the last minute : " + str(temp_rate))
+        
+        if (timer-base_time) > 59 : #Check if minute has passed
+            base_time=timer #update base time every minute
+            base_temp=temp #update base temp every minute
+            
+        return {"temp_rate" : temp_rate, "base_temp" : base_temp, "base_time" : base_time, "start" :start}
+
     def CameraTemperature(self, child_base_temp, child_base_time, timer, camera_start, child_danger_rate, camera_last_alert, camera_first_alert, child_maxtemp, cameraTemp):
 
         print("First Camera temperature alert time: " +str(camera_first_alert))
@@ -116,11 +135,11 @@ class temp_sensor():
 
         camera_temp_rate_bit = 0
         camera_danger_temp_bit = 0
-        temp = cameraTemp #Read temperature in F
+        #temp = cameraTemp #Read temperature in F
 
         print ("Current Camera Temperature in Fahrenheit : " + str(cameraTemp)) #Display temperature
         
-        if str(temp) > str(child_maxtemp): #check if current temp is higher than defined max temp
+        if cameraTemp > child_maxtemp: #check if current temp is higher than defined max temp
             print("Child is overheated!")
             if camera_last_alert == 0 :
                 camera_last_alert=timer
@@ -130,8 +149,8 @@ class temp_sensor():
                 camera_last_alert=timer
                 camera_danger_temp_bit = 1 #trigger danger_temp_alert() SMS warning
 
-        rate = temp_sensor.calc_rate(self, temp, child_base_temp, child_base_time, timer, camera_start) #Calculate change in temperature
-        start = rate['start']
+        rate = temp_sensor.Camera_calc_rate(self, cameraTemp, child_base_temp, child_base_time, timer, camera_start) #Calculate change in temperature
+        camera_start = rate['start']
         child_base_time = rate['base_time']
         child_base_temp = rate['base_temp']
     

@@ -22,6 +22,8 @@ import numpy as np
 import cv2
 from pylepton import Lepton
 from time import sleep
+import os
+
 
 
 #CREATE OBJECTS FROM HEADER CLASSES##########################################
@@ -113,6 +115,25 @@ timer_speed = 1
 
 def ShutdownPressed(arg):
     print("shutting down")
+    GPIO.output(TextingLED,1)
+    GPIO.output(CallingLED,1)
+    GPIO.output(BLELED,1)
+    GPIO.output(Speaker,1)
+    time.sleep(.5)
+    GPIO.output(TextingLED,0)
+    GPIO.output(CallingLED,0)
+    GPIO.output(BLELED,0)
+    GPIO.output(Speaker,0)
+    time.sleep(.5)
+    GPIO.output(TextingLED,1)
+    GPIO.output(CallingLED,1)
+    GPIO.output(BLELED,1)
+    GPIO.output(Speaker,1)
+    time.sleep(.5)
+    GPIO.output(TextingLED,0)
+    GPIO.output(CallingLED,0)
+    GPIO.output(BLELED,0)
+    GPIO.output(Speaker,0)
     os.system("sudo shutdown -h now")
     
 def seat_belt_alert( textnumber):
@@ -203,11 +224,6 @@ def cameraTemp():
             else:
                 averaged = np.mean(sum)
                 anotherone = np.mean(rawvalues)
-                
-##                print(" ")
-##                print('Average raw value {}'.format(anotherone))
-##                print('Averaged {}'.format(averaged))
-##                print(" ")
                 
                 TempC = anotherone
                 cameraTemp = TempC * 1.8 + 32 #Camera reading in degrees F.
@@ -350,7 +366,6 @@ def checkMovement(last_caralert, start_program, lastx, lasty, lastz, first_alert
             print("Last seat belt alert time: " + str(last_alert))
             print("Camera temperature in degrees F: " + str(cameraTemp))
             print("Connection bit: " + str(connection_bit))
-            print("Reed pin: " + str(GPIO.input(reed_pin)))
     
             moving = accel_sensor.Accelerometer_sensor(timer, GPIO.input(reed_pin), movingcar, last_caralert, start_program, lastx, lasty ,lastz)
 
@@ -456,6 +471,7 @@ def connected2App():
 ###############START OF PROGRAM############################################
 print("Current Temperature is: %.2f F" %tempsensor.readTempF())      
 print("Maximum car temperature is: " + str(maxtemp))
+print("Maximum child temperature is: " + str(child_maxtemp))
 # Create two threads as follows
 GPIO.add_event_callback(GPIO_ButtonShutdown, ShutdownPressed)
 
@@ -473,9 +489,12 @@ try:
 
     camerathread = threading.Thread( target=cameraTemp, args=() )
     camerathread.start()
+
+    time.sleep(5)
    
 except:
     print "Error: unable to start thread"
 
 while 1: #Keep running threads
+
     time.sleep(0.1)
